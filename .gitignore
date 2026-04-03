@@ -138,5 +138,19 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Vercel
+.vercel
+
+# Project planning docs
+habit-tracker-plan.md
+
 # Claude Code local settings
 .claude/settings.local.json
