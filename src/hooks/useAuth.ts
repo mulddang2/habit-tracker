@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAppStore } from "@/stores/useAppStore";
 
-const supabase = createClient();
-
 export function useAuth() {
+  const supabase = useMemo(() => createClient(), []);
   const setUser = useAppStore((s) => s.setUser);
   const clearUser = useAppStore((s) => s.clearUser);
 
@@ -28,7 +27,7 @@ export function useAuth() {
     });
 
     return () => subscription.unsubscribe();
-  }, [setUser, clearUser]);
+  }, [supabase.auth, setUser, clearUser]);
 
   const signInWithGoogle = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
