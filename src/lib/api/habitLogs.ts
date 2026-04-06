@@ -2,9 +2,12 @@ import { createClient } from "@/lib/supabase/client";
 import type { HabitLog } from "@/types/habit";
 import { format } from "date-fns";
 
-const supabase = createClient();
+function getClient() {
+  return createClient();
+}
 
 export async function fetchLogsByDate(date: Date): Promise<HabitLog[]> {
+  const supabase = getClient();
   const dateStr = format(date, "yyyy-MM-dd");
 
   const { data, error } = await supabase
@@ -21,6 +24,7 @@ export async function toggleHabitLog(
   date: Date,
   isCompleted: boolean
 ): Promise<void> {
+  const supabase = getClient();
   const dateStr = format(date, "yyyy-MM-dd");
 
   if (isCompleted) {

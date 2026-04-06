@@ -1,9 +1,12 @@
 import { createClient } from "@/lib/supabase/client";
 import type { Habit } from "@/types/habit";
 
-const supabase = createClient();
+function getClient() {
+  return createClient();
+}
 
 export async function fetchHabits(): Promise<Habit[]> {
+  const supabase = getClient();
   const { data, error } = await supabase
     .from("habits")
     .select("*")
@@ -16,6 +19,7 @@ export async function fetchHabits(): Promise<Habit[]> {
 export async function createHabit(
   habit: Pick<Habit, "title" | "category">
 ): Promise<Habit> {
+  const supabase = getClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -44,6 +48,7 @@ export async function updateHabit(
   id: string,
   habit: Partial<Pick<Habit, "title" | "category" | "order">>
 ): Promise<Habit> {
+  const supabase = getClient();
   const { data, error } = await supabase
     .from("habits")
     .update(habit)
@@ -56,6 +61,7 @@ export async function updateHabit(
 }
 
 export async function deleteHabit(id: string): Promise<void> {
+  const supabase = getClient();
   const { error } = await supabase.from("habits").delete().eq("id", id);
 
   if (error) throw error;
