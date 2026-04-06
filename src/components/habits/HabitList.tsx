@@ -7,6 +7,7 @@ import { useHabitsQuery, useDeleteHabit } from "@/hooks/useHabits";
 import { useTodayLogs, useToggleHabitLog } from "@/hooks/useHabitLogs";
 import { useAppStore } from "@/stores/useAppStore";
 import { HabitCard } from "@/components/habits/HabitCard";
+import { HabitCardSkeleton } from "@/components/habits/HabitCardSkeleton";
 import { EditHabitDialog } from "@/components/habits/EditHabitDialog";
 import { CategoryFilter } from "@/components/habits/CategoryFilter";
 import { Button } from "@/components/ui/button";
@@ -33,10 +34,7 @@ export function HabitList() {
     return (
       <div className="flex flex-col gap-3">
         {[1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="bg-muted h-14 animate-pulse rounded-lg border"
-          />
+          <HabitCardSkeleton key={i} />
         ))}
       </div>
     );
