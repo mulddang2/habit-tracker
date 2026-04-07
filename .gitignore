@@ -152,5 +152,7 @@ Thumbs.db
 # Project planning docs
 habit-tracker-plan.md
 
-# Claude Code local settings
-.claude/settings.local.json
+# Claude Code
+.claude/
+CLAUDE.md
+AGENTS.md
