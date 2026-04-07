@@ -1,13 +1,18 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchLogsByDate, toggleHabitLog } from "@/lib/api/habitLogs";
+import {
+  fetchLogsByDate,
+  fetchLogsByMonth,
+  toggleHabitLog,
+} from "@/lib/api/habitLogs";
 import type { HabitLog } from "@/types/habit";
 import { format } from "date-fns";
 
 export const habitLogKeys = {
   all: ["habitLogs"] as const,
-  byDate: (date: string) => [...habitLogKeys.all, date] as const,
+  byDate: (date: string) => [...habitLogKeys.all, "date", date] as const,
+  byMonth: (month: string) => [...habitLogKeys.all, "month", month] as const,
 };
 
 export function useTodayLogs(date: Date) {
@@ -64,6 +69,18 @@ export function useToggleHabitLog(date: Date) {
       queryClient.invalidateQueries({
         queryKey: habitLogKeys.byDate(dateStr),
       });
+      queryClient.invalidateQueries({
+        queryKey: habitLogKeys.byMonth(format(date, "yyyy-MM")),
+      });
     },
+  });
+}
+
+export function useMonthLogs(month: Date) {
+  const monthStr = format(month, "yyyy-MM");
+
+  return useQuery({
+    queryKey: habitLogKeys.byMonth(monthStr),
+    queryFn: () => fetchLogsByMonth(month),
   });
 }
