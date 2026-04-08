@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   fetchLogsByDate,
   fetchLogsByMonth,
@@ -64,6 +65,7 @@ export function useToggleHabitLog(date: Date) {
           context.previous
         );
       }
+      toast.error("습관 체크 변경에 실패했습니다. 다시 시도해주세요.");
     },
     onSettled: () => {
       queryClient.invalidateQueries({

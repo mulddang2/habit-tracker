@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   fetchHabits,
   createHabit,
@@ -26,7 +27,34 @@ export function useCreateHabit() {
 
   return useMutation({
     mutationFn: createHabit,
-    onSuccess: () => {
+    onMutate: async (newHabit) => {
+      await queryClient.cancelQueries({ queryKey: habitKeys.list() });
+      const previous = queryClient.getQueryData<Habit[]>(habitKeys.list());
+
+      const optimistic: Habit = {
+        id: `temp-${Date.now()}`,
+        user_id: "",
+        title: newHabit.title,
+        category: newHabit.category,
+        order: (previous?.length ?? 0) + 1,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      queryClient.setQueryData<Habit[]>(habitKeys.list(), (old) => [
+        ...(old ?? []),
+        optimistic,
+      ]);
+
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(habitKeys.list(), context.previous);
+      }
+      toast.error("습관 추가에 실패했습니다. 다시 시도해주세요.");
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: habitKeys.list() });
     },
   });
@@ -55,6 +83,7 @@ export function useUpdateHabit() {
       if (context?.previous) {
         queryClient.setQueryData(habitKeys.list(), context.previous);
       }
+      toast.error("습관 수정에 실패했습니다. 다시 시도해주세요.");
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: habitKeys.list() });
@@ -81,6 +110,7 @@ export function useDeleteHabit() {
       if (context?.previous) {
         queryClient.setQueryData(habitKeys.list(), context.previous);
       }
+      toast.error("습관 삭제에 실패했습니다. 다시 시도해주세요.");
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: habitKeys.list() });

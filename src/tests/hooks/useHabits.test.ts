@@ -92,6 +92,43 @@ describe("useCreateHabit", () => {
       expect.anything()
     );
   });
+
+  it("옵티미스틱 업데이트로 캐시에 즉시 추가한다", async () => {
+    vi.mocked(createHabit).mockImplementation(
+      () =>
+        new Promise((resolve) => setTimeout(() => resolve(mockHabits[0]), 100))
+    );
+    const { wrapper, queryClient } = createQueryWrapper();
+
+    queryClient.setQueryData(habitKeys.list(), mockHabits);
+
+    const { result } = renderHook(() => useCreateHabit(), { wrapper });
+
+    result.current.mutate({ title: "새 습관", category: "운동" });
+
+    await waitFor(() => {
+      const cached = queryClient.getQueryData<Habit[]>(habitKeys.list());
+      expect(cached).toHaveLength(3);
+      expect(cached?.[2].title).toBe("새 습관");
+      expect(cached?.[2].category).toBe("운동");
+    });
+  });
+
+  it("서버 에러 시 추가된 항목이 롤백된다", async () => {
+    vi.mocked(createHabit).mockRejectedValue(new Error("create error"));
+    const { wrapper, queryClient } = createQueryWrapper();
+
+    queryClient.setQueryData(habitKeys.list(), mockHabits);
+
+    const { result } = renderHook(() => useCreateHabit(), { wrapper });
+
+    result.current.mutate({ title: "실패할 습관", category: "건강" });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    const cached = queryClient.getQueryData<Habit[]>(habitKeys.list());
+    expect(cached).toHaveLength(2);
+  });
 });
 
 describe("useUpdateHabit", () => {
