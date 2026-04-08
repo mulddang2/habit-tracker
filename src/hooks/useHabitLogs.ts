@@ -22,6 +22,7 @@ export function useTodayLogs(date: Date) {
   return useQuery({
     queryKey: habitLogKeys.byDate(dateStr),
     queryFn: () => fetchLogsByDate(date),
+    staleTime: 0, // 체크/해제가 빈번하므로 항상 최신 유지
   });
 }
 
@@ -84,5 +85,7 @@ export function useMonthLogs(month: Date) {
   return useQuery({
     queryKey: habitLogKeys.byMonth(monthStr),
     queryFn: () => fetchLogsByMonth(month),
+    staleTime: 10 * 60 * 1000, // 월별 데이터는 느리게 변함
+    gcTime: 30 * 60 * 1000,
   });
 }

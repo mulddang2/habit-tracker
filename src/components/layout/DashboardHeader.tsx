@@ -3,7 +3,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { User, LogOut, ListChecks, CalendarDays } from "lucide-react";
+import {
+  User,
+  LogOut,
+  ListChecks,
+  CalendarDays,
+  BarChart3,
+} from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAppStore } from "@/stores/useAppStore";
 import { Button } from "@/components/ui/button";
@@ -12,6 +18,7 @@ import { cn } from "@/lib/utils";
 const NAV_ITEMS = [
   { href: "/habits", label: "습관", icon: ListChecks },
   { href: "/calendar", label: "달력", icon: CalendarDays },
+  { href: "/stats", label: "통계", icon: BarChart3 },
 ] as const;
 
 export function DashboardHeader() {

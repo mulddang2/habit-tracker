@@ -19,6 +19,8 @@ export function useHabitsQuery() {
   return useQuery({
     queryKey: habitKeys.list(),
     queryFn: fetchHabits,
+    staleTime: 5 * 60 * 1000, // 습관 목록은 자주 변경되지 않음
+    gcTime: 30 * 60 * 1000,
   });
 }
 
