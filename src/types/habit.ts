@@ -5,6 +5,7 @@ export interface Habit {
   user_id: string;
   title: string;
   category: Category;
+  reminder_time: string | null; // "HH:mm" 형식, null이면 알림 없음
   order: number;
   created_at: string;
   updated_at: string;

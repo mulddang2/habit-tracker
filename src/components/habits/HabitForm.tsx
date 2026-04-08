@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { habitSchema, type HabitFormData } from "@/lib/validations/habit";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -12,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Bell } from "lucide-react";
 import type { Category } from "@/types/habit";
 
 const CATEGORIES: Category[] = ["건강", "공부", "운동", "라이프"];
@@ -39,10 +41,16 @@ export function HabitForm({
     formState: { errors },
   } = useForm<HabitFormData>({
     resolver: zodResolver(habitSchema),
-    defaultValues: defaultValues ?? { title: "", category: undefined },
+    defaultValues: defaultValues ?? {
+      title: "",
+      category: undefined,
+      reminder_time: null,
+    },
   });
 
   const selectedCategory = useWatch({ control, name: "category" });
+  const reminderTime = useWatch({ control, name: "reminder_time" });
+  const hasReminder = !!reminderTime;
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
@@ -92,6 +100,42 @@ export function HabitForm({
             role="alert"
           >
             {errors.category.message}
+          </p>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="reminder-toggle"
+            checked={hasReminder}
+            onCheckedChange={(checked) => {
+              if (checked) {
+                setValue("reminder_time", "09:00", { shouldValidate: true });
+              } else {
+                setValue("reminder_time", null, { shouldValidate: true });
+              }
+            }}
+          />
+          <label
+            htmlFor="reminder-toggle"
+            className="flex items-center gap-1.5 text-sm font-medium"
+          >
+            <Bell className="size-3.5" />
+            알림 설정
+          </label>
+        </div>
+        {hasReminder && (
+          <Input
+            type="time"
+            aria-label="알림 시간"
+            {...register("reminder_time")}
+            className="w-32"
+          />
+        )}
+        {errors.reminder_time && (
+          <p className="text-destructive text-sm" role="alert">
+            {errors.reminder_time.message}
           </p>
         )}
       </div>

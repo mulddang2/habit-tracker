@@ -5,6 +5,7 @@ import { useAtomValue } from "jotai";
 import { categoryFilterAtom } from "@/atoms/habitAtoms";
 import { useHabitsQuery, useDeleteHabit } from "@/hooks/useHabits";
 import { useTodayLogs, useToggleHabitLog } from "@/hooks/useHabitLogs";
+import { useHabitReminders } from "@/hooks/useReminder";
 import { useAppStore } from "@/stores/useAppStore";
 import { HabitCard } from "@/components/habits/HabitCard";
 import { HabitCardSkeleton } from "@/components/habits/HabitCardSkeleton";
@@ -22,6 +23,8 @@ export function HabitList() {
   const deleteHabit = useDeleteHabit();
 
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
+
+  useHabitReminders(habits ?? []);
 
   const completedIds = new Set(logs?.map((log) => log.habit_id) ?? []);
 

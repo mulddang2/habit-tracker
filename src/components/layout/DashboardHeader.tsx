@@ -31,7 +31,7 @@ export function DashboardHeader() {
       <div className="mx-auto flex h-14 max-w-2xl items-center justify-between px-4">
         <div className="flex items-center gap-6">
           <h1 className="text-lg font-bold">습관 트래커</h1>
-          <nav className="flex items-center gap-1">
+          <nav className="hidden items-center gap-1 sm:flex">
             {NAV_ITEMS.map(({ href, label, icon: Icon }) => (
               <Link
                 key={href}

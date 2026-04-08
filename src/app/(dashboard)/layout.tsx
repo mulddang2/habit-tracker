@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { DashboardHeader } from "@/components/layout/DashboardHeader";
+import { MobileNav } from "@/components/layout/MobileNav";
 
 export default async function DashboardLayout({
   children,
@@ -19,9 +20,10 @@ export default async function DashboardLayout({
   return (
     <>
       <DashboardHeader />
-      <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6">
+      <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6 pb-20 sm:pb-6">
         {children}
       </main>
+      <MobileNav />
     </>
   );
 }

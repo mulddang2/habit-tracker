@@ -38,6 +38,7 @@ export function useCreateHabit() {
         user_id: "",
         title: newHabit.title,
         category: newHabit.category,
+        reminder_time: newHabit.reminder_time ?? null,
         order: (previous?.length ?? 0) + 1,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -69,8 +70,9 @@ export function useUpdateHabit() {
     mutationFn: ({
       id,
       ...data
-    }: { id: string } & Partial<Pick<Habit, "title" | "category">>) =>
-      updateHabit(id, data),
+    }: { id: string } & Partial<
+      Pick<Habit, "title" | "category" | "reminder_time">
+    >) => updateHabit(id, data),
     onMutate: async ({ id, ...data }) => {
       await queryClient.cancelQueries({ queryKey: habitKeys.list() });
       const previous = queryClient.getQueryData<Habit[]>(habitKeys.list());

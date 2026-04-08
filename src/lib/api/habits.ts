@@ -17,7 +17,7 @@ export async function fetchHabits(): Promise<Habit[]> {
 }
 
 export async function createHabit(
-  habit: Pick<Habit, "title" | "category">
+  habit: Pick<Habit, "title" | "category"> & { reminder_time?: string | null }
 ): Promise<Habit> {
   const supabase = getClient();
   const {
@@ -46,7 +46,7 @@ export async function createHabit(
 
 export async function updateHabit(
   id: string,
-  habit: Partial<Pick<Habit, "title" | "category" | "order">>
+  habit: Partial<Pick<Habit, "title" | "category" | "order" | "reminder_time">>
 ): Promise<Habit> {
   const supabase = getClient();
   const { data, error } = await supabase

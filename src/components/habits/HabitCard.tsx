@@ -3,7 +3,7 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2 } from "lucide-react";
+import { Bell, Pencil, Trash2 } from "lucide-react";
 import type { Habit, Category } from "@/types/habit";
 
 const CATEGORY_COLORS: Record<Category, string> = {
@@ -50,6 +50,15 @@ export function HabitCard({
         <Badge className={CATEGORY_COLORS[habit.category]} variant="secondary">
           {habit.category}
         </Badge>
+        {habit.reminder_time && (
+          <span
+            className="text-muted-foreground flex items-center gap-0.5 text-xs"
+            title={`알림: ${habit.reminder_time}`}
+          >
+            <Bell className="size-3" />
+            {habit.reminder_time}
+          </span>
+        )}
       </div>
 
       <div className="flex gap-1">

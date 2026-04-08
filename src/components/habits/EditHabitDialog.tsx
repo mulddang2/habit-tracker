@@ -38,7 +38,11 @@ export function EditHabitDialog({
           <DialogTitle>습관 수정</DialogTitle>
         </DialogHeader>
         <HabitForm
-          defaultValues={{ title: habit.title, category: habit.category }}
+          defaultValues={{
+            title: habit.title,
+            category: habit.category,
+            reminder_time: habit.reminder_time,
+          }}
           onSubmit={handleSubmit}
           onCancel={() => onOpenChange(false)}
           isPending={updateHabit.isPending}
