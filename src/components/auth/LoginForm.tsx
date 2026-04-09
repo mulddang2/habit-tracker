@@ -25,7 +25,7 @@ export function LoginForm() {
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4" role="form" aria-label="로그인">
       {error && (
         <p className="text-destructive text-center text-sm" role="alert">
           {error}

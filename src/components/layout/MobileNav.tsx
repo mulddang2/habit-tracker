@@ -15,18 +15,22 @@ export function MobileNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="bg-background fixed inset-x-0 bottom-0 z-50 border-t sm:hidden">
+    <nav
+      className="bg-background fixed inset-x-0 bottom-0 z-50 border-t sm:hidden"
+      aria-label="모바일 내비게이션"
+    >
       <div className="flex h-14 items-center justify-around">
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => (
           <Link
             key={href}
             href={href}
+            aria-current={pathname === href ? "page" : undefined}
             className={cn(
               "flex flex-1 flex-col items-center gap-0.5 py-1 text-xs transition-colors",
               pathname === href ? "text-foreground" : "text-muted-foreground"
             )}
           >
-            <Icon className="size-5" />
+            <Icon className="size-5" aria-hidden="true" />
             {label}
           </Link>
         ))}

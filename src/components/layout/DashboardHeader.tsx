@@ -31,11 +31,15 @@ export function DashboardHeader() {
       <div className="mx-auto flex h-14 max-w-2xl items-center justify-between px-4">
         <div className="flex items-center gap-6">
           <h1 className="text-lg font-bold">습관 트래커</h1>
-          <nav className="hidden items-center gap-1 sm:flex">
+          <nav
+            className="hidden items-center gap-1 sm:flex"
+            aria-label="메인 내비게이션"
+          >
             {NAV_ITEMS.map(({ href, label, icon: Icon }) => (
               <Link
                 key={href}
                 href={href}
+                aria-current={pathname === href ? "page" : undefined}
                 className={cn(
                   "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                   pathname === href
@@ -43,7 +47,7 @@ export function DashboardHeader() {
                     : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                 )}
               >
-                <Icon className="size-4" />
+                <Icon className="size-4" aria-hidden="true" />
                 {label}
               </Link>
             ))}

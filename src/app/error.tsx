@@ -17,8 +17,11 @@ export default function Error({
   }, [error]);
 
   return (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 px-4 text-center">
-      <AlertTriangle className="text-destructive size-12" />
+    <div
+      className="flex min-h-[60vh] flex-col items-center justify-center gap-4 px-4 text-center"
+      role="alert"
+    >
+      <AlertTriangle className="text-destructive size-12" aria-hidden="true" />
       <h2 className="text-xl font-bold">문제가 발생했습니다</h2>
       <p className="text-muted-foreground max-w-md text-sm">
         페이지를 불러오는 중 오류가 발생했습니다. 문제가 계속되면

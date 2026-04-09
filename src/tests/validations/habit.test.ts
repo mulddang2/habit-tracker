@@ -65,4 +65,40 @@ describe("habitSchema", () => {
     const result = habitSchema.safeParse({ title: "운동하기" });
     expect(result.success).toBe(false);
   });
+
+  it("유효한 reminder_time을 통과시킨다", () => {
+    const result = habitSchema.safeParse({
+      title: "운동하기",
+      category: "운동",
+      reminder_time: "09:30",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("null reminder_time을 통과시킨다", () => {
+    const result = habitSchema.safeParse({
+      title: "운동하기",
+      category: "운동",
+      reminder_time: null,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("잘못된 형식의 reminder_time을 거부한다", () => {
+    const result = habitSchema.safeParse({
+      title: "운동하기",
+      category: "운동",
+      reminder_time: "25:00",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("HH:mm이 아닌 reminder_time을 거부한다", () => {
+    const result = habitSchema.safeParse({
+      title: "운동하기",
+      category: "운동",
+      reminder_time: "9:30",
+    });
+    expect(result.success).toBe(false);
+  });
 });

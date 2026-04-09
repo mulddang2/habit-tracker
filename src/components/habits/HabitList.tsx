@@ -61,7 +61,7 @@ export function HabitList() {
       <CategoryFilter />
 
       {filteredHabits && filteredHabits.length > 0 ? (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2" role="list" aria-label="습관 목록">
           {filteredHabits.map((habit) => (
             <HabitCard
               key={habit.id}

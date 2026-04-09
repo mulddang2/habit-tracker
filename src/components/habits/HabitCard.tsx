@@ -31,6 +31,7 @@ export function HabitCard({
 }: HabitCardProps) {
   return (
     <div
+      role="listitem"
       className={`flex items-center gap-3 rounded-lg border p-3 transition-opacity ${
         isCompleted ? "opacity-60" : ""
       }`}

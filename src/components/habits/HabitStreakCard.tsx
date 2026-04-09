@@ -28,7 +28,11 @@ export function HabitStreakCard({
   completedDays,
 }: HabitStreakCardProps) {
   return (
-    <div className="flex items-center justify-between rounded-lg border p-3">
+    <div
+      className="flex items-center justify-between rounded-lg border p-3"
+      role="listitem"
+      aria-label={`${title}: 현재 ${currentStreak}일 연속, 최장 ${longestStreak}일, 이번 달 ${completedDays}회 완료`}
+    >
       <div className="flex items-center gap-2">
         <span className="text-sm font-medium">{title}</span>
         <Badge className={CATEGORY_COLORS[category]} variant="secondary">

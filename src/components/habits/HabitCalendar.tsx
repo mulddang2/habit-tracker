@@ -101,7 +101,7 @@ export function HabitCalendar() {
             <Flame className="size-4 text-orange-500" />
             연속 달성 스트릭
           </h3>
-          <div className="grid gap-2">
+          <div className="grid gap-2" role="list">
             {habitStreaks.map(({ habit, streak, completedDays }) => (
               <HabitStreakCard
                 key={habit.id}
