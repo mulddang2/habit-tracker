@@ -9,6 +9,7 @@ const mockHabit: Habit = {
   user_id: "user-1",
   title: "물 2L 마시기",
   category: "건강",
+  reminder_time: null,
   order: 1,
   created_at: "2026-04-01",
   updated_at: "2026-04-01",
