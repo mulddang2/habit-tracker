@@ -1,16 +1,37 @@
 "use client";
 
+import "../../../sentry.client.config";
 import { useState } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  QueryClient,
+  QueryClientProvider,
+  QueryCache,
+  MutationCache,
+} from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import * as Sentry from "@sentry/nextjs";
 
 export function QueryProvider({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
     () =>
       new QueryClient({
+        queryCache: new QueryCache({
+          onError: (error) => {
+            Sentry.captureException(error, {
+              tags: { source: "react-query" },
+            });
+          },
+        }),
+        mutationCache: new MutationCache({
+          onError: (error) => {
+            Sentry.captureException(error, {
+              tags: { source: "react-query-mutation" },
+            });
+          },
+        }),
         defaultOptions: {
           queries: {
-            staleTime: 60 * 1000, // 기본 1분, 각 쿼리에서 개별 오버라이드
+            staleTime: 60 * 1000,
             gcTime: 10 * 60 * 1000,
             retry: 1,
             refetchOnWindowFocus: true,
