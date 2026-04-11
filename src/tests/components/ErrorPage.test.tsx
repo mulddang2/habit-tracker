@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { axe } from "vitest-axe";
 import userEvent from "@testing-library/user-event";
 import ErrorPage from "@/app/error";
 
@@ -46,5 +47,13 @@ describe("Error Page", () => {
     render(<ErrorPage error={mockError} reset={mockReset} />);
 
     expect(screen.getByRole("alert")).toBeInTheDocument();
+  });
+
+  it("접근성 위반 없음", async () => {
+    const { container } = render(
+      <ErrorPage error={mockError} reset={mockReset} />
+    );
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
   });
 });

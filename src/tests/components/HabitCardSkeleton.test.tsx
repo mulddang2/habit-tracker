@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { axe } from "vitest-axe";
 import { HabitCardSkeleton } from "@/components/habits/HabitCardSkeleton";
 
 describe("HabitCardSkeleton", () => {
@@ -13,5 +14,11 @@ describe("HabitCardSkeleton", () => {
     render(<HabitCardSkeleton />);
 
     expect(screen.getByLabelText("습관 로딩 중")).toBeInTheDocument();
+  });
+
+  it("접근성 위반 없음", async () => {
+    const { container } = render(<HabitCardSkeleton />);
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
   });
 });
