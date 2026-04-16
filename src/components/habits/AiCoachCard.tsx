@@ -43,7 +43,7 @@ export function AiCoachCard() {
 
   const response = coach.data;
   const targetHabit =
-    response && habits.find((h) => h.id === response.suggestion.targetHabitId);
+    response && habits?.find((h) => h.id === response.suggestion.targetHabitId);
 
   const handleRequest = () => {
     setShowReason(false);
