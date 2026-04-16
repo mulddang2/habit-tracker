@@ -9,6 +9,7 @@ import { useWeeklyStats, useMonthlyHabitStats } from "@/hooks/useStats";
 import { WeeklyChart } from "@/components/stats/WeeklyChart";
 import { DailyTrendChart } from "@/components/stats/DailyTrendChart";
 import { MonthlyHabitChart } from "@/components/stats/MonthlyHabitChart";
+import { CoachEffectSection } from "@/components/stats/CoachEffectSection";
 
 export default function StatsPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -89,6 +90,9 @@ export default function StatsPage() {
 
           {/* 월간 습관별 달성률 */}
           <MonthlyHabitChart data={habitRates} month={monthLabel} />
+
+          {/* AI 코치 효과 */}
+          <CoachEffectSection />
         </>
       )}
     </div>

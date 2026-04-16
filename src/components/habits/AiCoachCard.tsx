@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, X, Info } from "lucide-react";
+import { Sparkles, X, Info, Check } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useCoachSuggestion } from "@/hooks/useCoach";
 import { useCoachStore } from "@/stores/useCoachStore";
 import { useHabitsQuery } from "@/hooks/useHabits";
+import { insertCoachEvent } from "@/lib/api/coachEvents";
 import { toast } from "sonner";
 import type { CoachResponse } from "@/lib/ai/schema";
 
@@ -50,7 +51,26 @@ export function AiCoachCard() {
     coach.mutate();
   };
 
+  const handleAccept = () => {
+    if (!response) return;
+    insertCoachEvent({
+      promptVersion: response.promptVersion,
+      suggestion: response.suggestion,
+      action: "accepted",
+    }).catch(() => {});
+    markDismissed();
+    coach.reset();
+    toast.success("제안을 수락했습니다.");
+  };
+
   const handleDismiss = () => {
+    if (response) {
+      insertCoachEvent({
+        promptVersion: response.promptVersion,
+        suggestion: response.suggestion,
+        action: "dismissed",
+      }).catch(() => {});
+    }
     markDismissed();
     coach.reset();
     toast.info("제안을 닫았습니다.");
@@ -133,6 +153,10 @@ export function AiCoachCard() {
         </div>
 
         <div className="flex items-center gap-2">
+          <Button size="sm" onClick={handleAccept}>
+            <Check className="mr-1 h-3 w-3" aria-hidden />
+            수락
+          </Button>
           <Button
             size="sm"
             variant="outline"
