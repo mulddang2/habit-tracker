@@ -1,6 +1,7 @@
 import { TodayHeader } from "@/components/habits/TodayHeader";
 import { HabitList } from "@/components/habits/HabitList";
 import { AddHabitDialog } from "@/components/habits/AddHabitDialog";
+import { AiCoachCard } from "@/components/habits/AiCoachCard";
 
 export default function HabitsPage() {
   return (
@@ -9,6 +10,7 @@ export default function HabitsPage() {
         <TodayHeader />
         <AddHabitDialog />
       </div>
+      <AiCoachCard />
       <HabitList />
     </div>
   );
