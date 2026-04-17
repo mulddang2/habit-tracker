@@ -110,12 +110,27 @@ export async function getCoachSuggestion(
   const userPrompt = buildUserPrompt(input);
   const habitIds = new Set(input.habits.map((h) => h.id));
 
+  const RESPONSE_SCHEMA = {
+    type: "object",
+    properties: {
+      targetHabitId: { type: "string" },
+      action: {
+        type: "string",
+        enum: ["reschedule", "simplify", "skip", "encourage"],
+      },
+      suggestion: { type: "string" },
+      reason: { type: "string" },
+    },
+    required: ["targetHabitId", "action", "suggestion", "reason"],
+  };
+
   const callOnce = async () => {
     const raw = await generateContent({
       system: SYSTEM_PROMPT,
       messages: [{ role: "user", text: userPrompt }],
       temperature: 0.4,
       responseMimeType: "application/json",
+      responseSchema: RESPONSE_SCHEMA,
     });
     const suggestion = parseAndValidate(raw);
     if (!habitIds.has(suggestion.targetHabitId)) {

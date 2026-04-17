@@ -49,6 +49,12 @@ export async function POST() {
     return NextResponse.json(result);
   } catch (err) {
     const status = err instanceof GeminiError ? (err.status ?? 502) : 500;
+    if (status === 429) {
+      return NextResponse.json(
+        { error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." },
+        { status: 429 }
+      );
+    }
     const message = err instanceof Error ? err.message : "알 수 없는 오류";
     return NextResponse.json({ error: message }, { status });
   }

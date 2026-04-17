@@ -1,4 +1,4 @@
-const GEMINI_MODEL = "gemini-2.5-flash";
+const GEMINI_MODEL = "gemini-2.5-flash-lite";
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 export interface GeminiMessage {
@@ -11,6 +11,7 @@ export interface GeminiGenerateOptions {
   messages: GeminiMessage[];
   temperature?: number;
   responseMimeType?: "text/plain" | "application/json";
+  responseSchema?: Record<string, unknown>;
 }
 
 export class GeminiError extends Error {
@@ -40,24 +41,32 @@ export async function generateContent(
     generationConfig: {
       temperature: options.temperature ?? 0.4,
       responseMimeType: options.responseMimeType ?? "application/json",
+      ...(options.responseSchema && { responseSchema: options.responseSchema }),
     },
   };
 
-  const res = await fetch(`${GEMINI_ENDPOINT}?key=${apiKey}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+  let res: Response | null = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) {
+      await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt));
+    }
+    res = await fetch(`${GEMINI_ENDPOINT}?key=${apiKey}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (res.status !== 503) break;
+  }
 
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
+  if (!res!.ok) {
+    const text = await res!.text().catch(() => "");
     throw new GeminiError(
-      `Gemini API 호출 실패 (${res.status}): ${text}`,
-      res.status
+      `Gemini API 호출 실패 (${res!.status}): ${text}`,
+      res!.status
     );
   }
 
-  const json = (await res.json()) as {
+  const json = (await res!.json()) as {
     candidates?: Array<{
       content?: { parts?: Array<{ text?: string }> };
     }>;
