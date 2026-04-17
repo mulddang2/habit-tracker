@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import { QueryProvider } from "@/components/providers/QueryProvider";
@@ -14,9 +14,19 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  themeColor: "#000000",
+};
+
 export const metadata: Metadata = {
   title: "습관 트래커",
   description: "매일 습관을 기록·달성·시각화하는 개인 생산성 앱",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "습관 트래커",
+  },
 };
 
 export default function RootLayout({

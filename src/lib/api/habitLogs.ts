@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import * as habitLogRepository from "@/lib/db/repositories/habitLogRepository";
 import type { HabitLog } from "@/types/habit";
 import {
   format,
@@ -9,21 +10,24 @@ import {
   subWeeks,
 } from "date-fns";
 
+// --- Remote (Supabase 직접 호출 — sync/hydrate에서 사용) ---
+
 function getClient() {
   return createClient();
 }
 
-export async function fetchLogsByDate(date: Date): Promise<HabitLog[]> {
+export async function remoteFetchAllLogs(): Promise<HabitLog[]> {
   const supabase = getClient();
-  const dateStr = format(date, "yyyy-MM-dd");
-
-  const { data, error } = await supabase
-    .from("habit_logs")
-    .select("*")
-    .eq("completed_at", dateStr);
-
+  const { data, error } = await supabase.from("habit_logs").select("*");
   if (error) throw error;
   return data;
+}
+
+// --- Public API (로컬 DB 우선) ---
+
+export async function fetchLogsByDate(date: Date): Promise<HabitLog[]> {
+  const dateStr = format(date, "yyyy-MM-dd");
+  return habitLogRepository.fetchByDate(dateStr);
 }
 
 export async function toggleHabitLog(
@@ -31,57 +35,23 @@ export async function toggleHabitLog(
   date: Date,
   isCompleted: boolean
 ): Promise<void> {
-  const supabase = getClient();
   const dateStr = format(date, "yyyy-MM-dd");
-
-  if (isCompleted) {
-    const { error } = await supabase
-      .from("habit_logs")
-      .delete()
-      .eq("habit_id", habitId)
-      .eq("completed_at", dateStr);
-
-    if (error) throw error;
-  } else {
-    const { error } = await supabase
-      .from("habit_logs")
-      .insert({ habit_id: habitId, completed_at: dateStr });
-
-    if (error) throw error;
-  }
+  return habitLogRepository.toggle(habitId, dateStr, isCompleted);
 }
 
 export async function fetchLogsByMonth(month: Date): Promise<HabitLog[]> {
-  const supabase = getClient();
   const from = format(startOfMonth(month), "yyyy-MM-dd");
   const to = format(endOfMonth(month), "yyyy-MM-dd");
-
-  const { data, error } = await supabase
-    .from("habit_logs")
-    .select("*")
-    .gte("completed_at", from)
-    .lte("completed_at", to);
-
-  if (error) throw error;
-  return data;
+  return habitLogRepository.fetchByMonth(from, to);
 }
 
 export async function fetchLogsByRange(
   from: Date,
   to: Date
 ): Promise<HabitLog[]> {
-  const supabase = getClient();
   const fromStr = format(from, "yyyy-MM-dd");
   const toStr = format(to, "yyyy-MM-dd");
-
-  const { data, error } = await supabase
-    .from("habit_logs")
-    .select("*")
-    .gte("completed_at", fromStr)
-    .lte("completed_at", toStr);
-
-  if (error) throw error;
-  return data;
+  return habitLogRepository.fetchByRange(fromStr, toStr);
 }
 
 export async function fetchWeeklyLogs(

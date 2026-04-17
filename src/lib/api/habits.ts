@@ -1,11 +1,14 @@
 import { createClient } from "@/lib/supabase/client";
+import * as habitRepository from "@/lib/db/repositories/habitRepository";
 import type { Habit } from "@/types/habit";
+
+// --- Remote (Supabase 직접 호출 — sync queue에서 사용) ---
 
 function getClient() {
   return createClient();
 }
 
-export async function fetchHabits(): Promise<Habit[]> {
+export async function remoteFetchHabits(): Promise<Habit[]> {
   const supabase = getClient();
   const { data, error } = await supabase
     .from("habits")
@@ -14,6 +17,12 @@ export async function fetchHabits(): Promise<Habit[]> {
 
   if (error) throw error;
   return data;
+}
+
+// --- Public API (로컬 DB 우선) ---
+
+export async function fetchHabits(): Promise<Habit[]> {
+  return habitRepository.fetchAll();
 }
 
 export async function createHabit(
@@ -25,44 +34,29 @@ export async function createHabit(
   } = await supabase.auth.getUser();
   if (!user) throw new Error("인증되지 않은 사용자입니다.");
 
-  const { data: maxOrderData } = await supabase
-    .from("habits")
-    .select("order")
-    .order("order", { ascending: false })
-    .limit(1)
-    .single();
+  const maxOrder = await habitRepository.getMaxOrder();
 
-  const nextOrder = (maxOrderData?.order ?? 0) + 1;
+  const newHabit: Habit = {
+    id: crypto.randomUUID(),
+    user_id: user.id,
+    title: habit.title,
+    category: habit.category,
+    reminder_time: habit.reminder_time ?? null,
+    order: maxOrder + 1,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
 
-  const { data, error } = await supabase
-    .from("habits")
-    .insert({ ...habit, user_id: user.id, order: nextOrder })
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
+  return habitRepository.create(newHabit);
 }
 
 export async function updateHabit(
   id: string,
   habit: Partial<Pick<Habit, "title" | "category" | "order" | "reminder_time">>
 ): Promise<Habit> {
-  const supabase = getClient();
-  const { data, error } = await supabase
-    .from("habits")
-    .update(habit)
-    .eq("id", id)
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
+  return habitRepository.update(id, habit);
 }
 
 export async function deleteHabit(id: string): Promise<void> {
-  const supabase = getClient();
-  const { error } = await supabase.from("habits").delete().eq("id", id);
-
-  if (error) throw error;
+  return habitRepository.remove(id);
 }
