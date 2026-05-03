@@ -100,6 +100,52 @@ export function CoachEffectSection() {
           </div>
         </div>
 
+        {/* 수락 전후 7일 완료율 변화 */}
+        {stats.acceptImpact ? (
+          <div className="rounded-lg border bg-emerald-50/40 p-4 dark:bg-emerald-950/20">
+            <div className="mb-2 flex items-center justify-between">
+              <h4 className="text-xs font-medium">수락 전후 7일 완료율</h4>
+              <span className="text-muted-foreground text-xs">
+                표본 {stats.acceptImpact.sampleSize}건
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex-1 text-center">
+                <p className="text-muted-foreground text-xs">전 7일</p>
+                <p className="text-xl font-bold">
+                  {stats.acceptImpact.beforeRate}%
+                </p>
+              </div>
+              <div className="text-muted-foreground text-2xl">→</div>
+              <div className="flex-1 text-center">
+                <p className="text-muted-foreground text-xs">후 7일</p>
+                <p className="text-xl font-bold">
+                  {stats.acceptImpact.afterRate}%
+                </p>
+              </div>
+              <div className="flex-1 text-center">
+                <p className="text-muted-foreground text-xs">변화</p>
+                <p
+                  className={`text-xl font-bold ${
+                    stats.acceptImpact.delta > 0
+                      ? "text-emerald-600"
+                      : stats.acceptImpact.delta < 0
+                        ? "text-rose-600"
+                        : "text-muted-foreground"
+                  }`}
+                >
+                  {stats.acceptImpact.delta > 0 ? "+" : ""}
+                  {stats.acceptImpact.delta}%p
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="text-muted-foreground rounded-lg border border-dashed p-3 text-xs">
+            수락 후 7일이 지난 제안이 모이면 전후 완료율 변화를 보여드려요.
+          </div>
+        )}
+
         {/* 수락/거부/무시 파이 차트 */}
         <div>
           <h4 className="mb-2 text-xs font-medium">제안 반응 분포</h4>

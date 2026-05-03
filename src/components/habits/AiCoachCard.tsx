@@ -1,15 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Sparkles, X, Info, Check } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useCoachSuggestion } from "@/hooks/useCoach";
 import { useCoachStore } from "@/stores/useCoachStore";
 import { useHabitsQuery } from "@/hooks/useHabits";
-import { insertCoachEvent } from "@/lib/api/coachEvents";
+import { useCoachTelemetry } from "@/hooks/useCoachTelemetry";
 import { toast } from "sonner";
-import type { CoachResponse } from "@/lib/ai/schema";
+import type { CoachResponse, CoachSuggestion } from "@/lib/ai/schema";
 
 const ACTION_LABEL: Record<CoachResponse["suggestion"]["action"], string> = {
   reschedule: "시간 조정",
@@ -18,6 +18,11 @@ const ACTION_LABEL: Record<CoachResponse["suggestion"]["action"], string> = {
   encourage: "격려",
 };
 
+interface PendingResponse {
+  promptVersion: string;
+  suggestion: CoachSuggestion;
+}
+
 export function AiCoachCard() {
   const { data: habits, isLoading: habitsLoading } = useHabitsQuery();
   const isOnCooldown = useCoachStore((s) => s.isOnCooldown());
@@ -25,39 +30,60 @@ export function AiCoachCard() {
   const reset = useCoachStore((s) => s.reset);
 
   const coach = useCoachSuggestion();
+  const { track } = useCoachTelemetry();
   const [showReason, setShowReason] = useState(false);
 
-  if (habitsLoading) {
-    return (
-      <div className="rounded-md border border-yellow-400 bg-yellow-50 p-3 text-xs text-yellow-900">
-        [debug] AiCoachCard: habits 로딩 중
-      </div>
-    );
-  }
-  if (habits && habits.length === 0) {
-    return (
-      <div className="rounded-md border border-yellow-400 bg-yellow-50 p-3 text-xs text-yellow-900">
-        [debug] AiCoachCard: habits 비어있음
-      </div>
-    );
-  }
+  // 사용자가 응답하지 않은 채로 사라지는 제안을 추적 → unmount/재요청 시 ignored 로깅
+  const pendingRef = useRef<PendingResponse | null>(null);
+
+  useEffect(() => {
+    if (coach.data) {
+      pendingRef.current = {
+        promptVersion: coach.data.promptVersion,
+        suggestion: coach.data.suggestion,
+      };
+    }
+  }, [coach.data]);
+
+  useEffect(() => {
+    return () => {
+      const pending = pendingRef.current;
+      if (pending) {
+        track({ ...pending, action: "ignored" }).catch(() => {});
+        pendingRef.current = null;
+      }
+    };
+  }, [track]);
+
+  if (habitsLoading) return null;
+  if (habits && habits.length === 0) return null;
 
   const response = coach.data;
   const targetHabit =
     response && habits?.find((h) => h.id === response.suggestion.targetHabitId);
 
+  const flushPendingAsIgnored = () => {
+    const pending = pendingRef.current;
+    if (pending) {
+      track({ ...pending, action: "ignored" }).catch(() => {});
+      pendingRef.current = null;
+    }
+  };
+
   const handleRequest = () => {
+    flushPendingAsIgnored();
     setShowReason(false);
     coach.mutate();
   };
 
   const handleAccept = () => {
     if (!response) return;
-    insertCoachEvent({
+    track({
       promptVersion: response.promptVersion,
       suggestion: response.suggestion,
       action: "accepted",
     }).catch(() => {});
+    pendingRef.current = null;
     markDismissed();
     coach.reset();
     toast.success("제안을 수락했습니다.");
@@ -65,12 +91,13 @@ export function AiCoachCard() {
 
   const handleDismiss = () => {
     if (response) {
-      insertCoachEvent({
+      track({
         promptVersion: response.promptVersion,
         suggestion: response.suggestion,
         action: "dismissed",
       }).catch(() => {});
     }
+    pendingRef.current = null;
     markDismissed();
     coach.reset();
     toast.info("제안을 닫았습니다.");

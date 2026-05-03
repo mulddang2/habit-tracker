@@ -3,7 +3,7 @@ import type { Habit, HabitLog } from "@/types/habit";
 
 export interface SyncQueueItem {
   id?: number;
-  table: "habits" | "habit_logs";
+  table: "habits" | "habit_logs" | "coach_events";
   operation: "INSERT" | "UPDATE" | "DELETE";
   payload: Record<string, unknown>;
   created_at: number;
