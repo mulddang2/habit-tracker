@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { enqueue, flush } from "@/lib/db/sync";
+import { enqueue } from "@/lib/db/sync";
 import type { CoachAction } from "@/types/coach";
 import type { CoachSuggestion } from "@/lib/ai/schema";
 
@@ -30,10 +30,6 @@ export function useCoachTelemetry() {
         action: params.action,
       },
     });
-
-    if (typeof navigator !== "undefined" && navigator.onLine) {
-      flush().catch(() => {});
-    }
   }, []);
 
   return { track };

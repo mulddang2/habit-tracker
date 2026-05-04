@@ -9,6 +9,9 @@ export async function enqueue(
     created_at: Date.now(),
     retries: 0,
   });
+  if (typeof navigator !== "undefined" && navigator.onLine) {
+    flush().catch(() => {});
+  }
 }
 
 export async function flush(): Promise<void> {

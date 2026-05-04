@@ -1,7 +1,7 @@
 import "fake-indexeddb/auto";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { db } from "@/lib/db/local";
-import { hydrateLocalDb, isLocalDbEmpty } from "@/lib/db/hydrate";
+import { hydrateLocalDb } from "@/lib/db/hydrate";
 
 const mockGetUser = vi.fn();
 const mockSelect = vi.fn();
@@ -103,28 +103,5 @@ describe("hydrateLocalDb", () => {
     const habits = await db.habits.toArray();
     expect(habits).toHaveLength(1);
     expect(habits[0].title).toBe("운동"); // 서버 데이터로 갱신됨
-  });
-});
-
-describe("isLocalDbEmpty", () => {
-  it("습관이 없으면 true를 반환한다", async () => {
-    const result = await isLocalDbEmpty();
-    expect(result).toBe(true);
-  });
-
-  it("습관이 있으면 false를 반환한다", async () => {
-    await db.habits.add({
-      id: "h1",
-      user_id: "user-1",
-      title: "테스트",
-      category: "건강",
-      reminder_time: null,
-      order: 1,
-      created_at: "2026-04-01",
-      updated_at: "2026-04-01",
-    });
-
-    const result = await isLocalDbEmpty();
-    expect(result).toBe(false);
   });
 });

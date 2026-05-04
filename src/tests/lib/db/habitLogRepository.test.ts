@@ -7,6 +7,11 @@ beforeEach(async () => {
   await db.habits.clear();
   await db.habit_logs.clear();
   await db.sync_queue.clear();
+  // enqueue가 자동 flush를 트리거하지 않도록 오프라인 상태로 둠
+  Object.defineProperty(navigator, "onLine", {
+    configurable: true,
+    value: false,
+  });
 });
 
 describe("habitLogRepository", () => {

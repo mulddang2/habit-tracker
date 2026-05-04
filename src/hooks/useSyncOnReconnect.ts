@@ -1,17 +1,15 @@
 "use client";
 
-import { useEffect } from "react";
+import { hydrateLocalDb } from "@/lib/db/hydrate";
 import { flush } from "@/lib/db/sync";
-import { hydrateLocalDb, isLocalDbEmpty } from "@/lib/db/hydrate";
+import { useEffect } from "react";
 
 export function useSyncOnReconnect() {
   useEffect(() => {
-    // 최초 로드 시 로컬 DB가 비어있으면 서버에서 풀
+    // 최초 로드 시 서버에서 최신 데이터로 동기화
     async function initialHydrate() {
       try {
-        if (await isLocalDbEmpty()) {
-          await hydrateLocalDb();
-        }
+        await hydrateLocalDb();
       } catch {
         // 오프라인이거나 미인증 상태 — 무시
       }

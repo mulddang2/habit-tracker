@@ -38,6 +38,11 @@ vi.mock("@/lib/supabase/client", () => ({
 beforeEach(async () => {
   await db.sync_queue.clear();
   vi.clearAllMocks();
+  // enqueue가 자동 flush를 트리거하지 않도록 오프라인 상태로 둠
+  Object.defineProperty(navigator, "onLine", {
+    configurable: true,
+    value: false,
+  });
 });
 
 describe("sync module", () => {

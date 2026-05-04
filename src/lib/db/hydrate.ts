@@ -23,8 +23,3 @@ export async function hydrateLocalDb(): Promise<void> {
     await db.habit_logs.bulkPut(logs);
   }
 }
-
-export async function isLocalDbEmpty(): Promise<boolean> {
-  const count = await db.habits.count();
-  return count === 0;
-}
