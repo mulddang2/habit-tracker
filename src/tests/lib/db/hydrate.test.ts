@@ -180,4 +180,66 @@ describe("hydrateLocalDb", () => {
     const habits = await db.habits.toArray();
     expect(habits.map((h) => h.id)).toEqual(["h-local"]);
   });
+
+  it("sync_queue에 미flush DELETE가 있는 habit은 부활시키지 않는다", async () => {
+    // 사용자가 삭제 → 로컬에서 이미 사라짐 + sync_queue엔 DELETE 대기 중
+    // 서버는 아직 DELETE를 못 받았으므로 응답에 그대로 존재
+    await db.sync_queue.add({
+      table: "habits",
+      operation: "DELETE",
+      payload: { id: "h-deleting" },
+      created_at: Date.now(),
+      retries: 0,
+    });
+    habitsResponse = {
+      data: [sampleHabit({ id: "h-deleting" })],
+      error: null,
+    };
+
+    await hydrateLocalDb();
+
+    const habits = await db.habits.toArray();
+    expect(habits.map((h) => h.id)).toEqual([]);
+  });
+
+  it("sync_queue에 미flush DELETE가 있는 habit_log은 부활시키지 않는다", async () => {
+    await db.sync_queue.add({
+      table: "habit_logs",
+      operation: "DELETE",
+      payload: { id: "l-deleting" },
+      created_at: Date.now(),
+      retries: 0,
+    });
+    logsResponse = {
+      data: [sampleLog({ id: "l-deleting" })],
+      error: null,
+    };
+
+    await hydrateLocalDb();
+
+    const logs = await db.habit_logs.toArray();
+    expect(logs.map((l) => l.id)).toEqual([]);
+  });
+
+  it("sync_queue에 미flush UPDATE가 있는 habit은 서버 옛값으로 덮어쓰지 않는다", async () => {
+    // 로컬엔 이미 새 제목으로 업데이트됨 + sync_queue엔 UPDATE 대기 중
+    // 서버는 아직 옛 제목을 들고 있음
+    await db.habits.add(sampleHabit({ id: "h-edited", title: "새 제목" }));
+    await db.sync_queue.add({
+      table: "habits",
+      operation: "UPDATE",
+      payload: { id: "h-edited", title: "새 제목" },
+      created_at: Date.now(),
+      retries: 0,
+    });
+    habitsResponse = {
+      data: [sampleHabit({ id: "h-edited", title: "옛 제목" })],
+      error: null,
+    };
+
+    await hydrateLocalDb();
+
+    const habits = await db.habits.toArray();
+    expect(habits[0]?.title).toBe("새 제목");
+  });
 });
