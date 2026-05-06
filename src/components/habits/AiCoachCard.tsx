@@ -108,7 +108,8 @@ export function AiCoachCard() {
       <Card className="border-destructive/40">
         <CardContent className="flex items-center justify-between gap-3 py-4">
           <p className="text-destructive text-sm">
-            코치 제안을 불러오지 못했습니다. 다시 시도해주세요.
+            {coach.error?.message ??
+              "코치 제안을 불러오지 못했습니다. 다시 시도해주세요."}
           </p>
           <Button size="sm" variant="outline" onClick={handleRequest}>
             다시 시도

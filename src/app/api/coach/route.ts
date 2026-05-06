@@ -40,14 +40,22 @@ export async function POST() {
       .lte("completed_at", to);
     if (logsError) throw logsError;
 
+    if (!logs || logs.length === 0) {
+      return NextResponse.json(
+        { error: "체크 기록이 아직 없어요. 며칠 사용한 뒤 다시 시도해주세요." },
+        { status: 400 }
+      );
+    }
+
     const result = await getCoachSuggestion({
       habits: habits as Habit[],
-      logs: (logs ?? []) as HabitLog[],
+      logs: logs as HabitLog[],
       today,
     });
 
     return NextResponse.json(result);
   } catch (err) {
+    console.error("[/api/coach]", err);
     const status = err instanceof GeminiError ? (err.status ?? 502) : 500;
     if (status === 429) {
       return NextResponse.json(
