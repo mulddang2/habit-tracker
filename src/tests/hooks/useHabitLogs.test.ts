@@ -91,6 +91,34 @@ describe("useToggleHabitLog", () => {
     });
   });
 
+  it("성공 시 byDate/byMonth/weekly 등 모든 habitLogs 쿼리를 무효화한다", async () => {
+    vi.mocked(toggleHabitLog).mockResolvedValue(undefined);
+    const { wrapper, queryClient } = createQueryWrapper();
+
+    // 통계의 weekly 키는 byDate/byMonth로 안 잡힘 — 함께 무효화돼야 함
+    const weeklyKey = [...habitLogKeys.all, "weekly", "2026-04-07"] as const;
+    queryClient.setQueryData(habitLogKeys.byDate("2026-04-07"), []);
+    queryClient.setQueryData(habitLogKeys.byMonth("2026-04"), []);
+    queryClient.setQueryData(weeklyKey, []);
+
+    const { result } = renderHook(() => useToggleHabitLog(testDate), {
+      wrapper,
+    });
+
+    result.current.mutate({ habitId: "h1", isCompleted: false });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(
+      queryClient.getQueryState(habitLogKeys.byDate("2026-04-07"))
+        ?.isInvalidated
+    ).toBe(true);
+    expect(
+      queryClient.getQueryState(habitLogKeys.byMonth("2026-04"))?.isInvalidated
+    ).toBe(true);
+    expect(queryClient.getQueryState(weeklyKey)?.isInvalidated).toBe(true);
+  });
+
   it("서버 에러 시 이전 상태로 롤백하고 토스트를 표시한다", async () => {
     vi.mocked(toggleHabitLog).mockRejectedValue(new Error("toggle error"));
     const { wrapper, queryClient } = createQueryWrapper();

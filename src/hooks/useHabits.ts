@@ -8,6 +8,7 @@ import {
   updateHabit,
   deleteHabit,
 } from "@/lib/api/habits";
+import { habitLogKeys } from "@/hooks/useHabitLogs";
 import type { Habit } from "@/types/habit";
 
 export const habitKeys = {
@@ -118,6 +119,8 @@ export function useDeleteHabit() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: habitKeys.list() });
+      // 삭제는 habit_logs도 함께 지움 — 통계/캘린더 캐시도 갱신
+      queryClient.invalidateQueries({ queryKey: habitLogKeys.all });
     },
   });
 }

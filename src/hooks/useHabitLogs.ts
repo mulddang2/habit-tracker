@@ -69,12 +69,8 @@ export function useToggleHabitLog(date: Date) {
       toast.error("습관 체크 변경에 실패했습니다. 다시 시도해주세요.");
     },
     onSettled: () => {
-      queryClient.invalidateQueries({
-        queryKey: habitLogKeys.byDate(dateStr),
-      });
-      queryClient.invalidateQueries({
-        queryKey: habitLogKeys.byMonth(format(date, "yyyy-MM")),
-      });
+      // 통계의 weekly 쿼리 키처럼 byDate/byMonth로 안 잡히는 파생 키도 같이 무효화
+      queryClient.invalidateQueries({ queryKey: habitLogKeys.all });
     },
   });
 }
