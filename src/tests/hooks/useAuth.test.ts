@@ -6,6 +6,7 @@ import { useAppStore } from "@/stores/useAppStore";
 const mockSignInWithOAuth = vi.fn();
 const mockSignOut = vi.fn();
 const mockOnAuthStateChange = vi.fn();
+const mockClearLocalUserData = vi.fn();
 let authChangeCallback: (event: string, session: unknown) => void;
 
 vi.mock("@/lib/supabase/client", () => ({
@@ -22,6 +23,10 @@ vi.mock("@/lib/supabase/client", () => ({
       signOut: mockSignOut,
     },
   }),
+}));
+
+vi.mock("@/lib/db/clearLocalData", () => ({
+  clearLocalUserData: () => mockClearLocalUserData(),
 }));
 
 describe("useAuth", () => {
@@ -91,6 +96,7 @@ describe("useAuth", () => {
 
   it("signOut을 호출하면 /login으로 이동한다", async () => {
     mockSignOut.mockResolvedValue({ error: null });
+    mockClearLocalUserData.mockResolvedValue(undefined);
 
     // window.location.href mock
     const locationSpy = vi.spyOn(window, "location", "get").mockReturnValue({
@@ -113,6 +119,33 @@ describe("useAuth", () => {
 
     expect(mockSignOut).toHaveBeenCalled();
     locationSpy.mockRestore();
+  });
+
+  it("signOut 시 로컬 사용자 데이터를 정리한다 — 다음 사용자로의 누수 방지", async () => {
+    mockSignOut.mockResolvedValue({ error: null });
+    mockClearLocalUserData.mockResolvedValue(undefined);
+
+    const { result } = renderHook(() => useAuth());
+
+    await act(async () => {
+      await result.current.signOut();
+    });
+
+    expect(mockClearLocalUserData).toHaveBeenCalledOnce();
+  });
+
+  it("signOut의 supabase 에러 시 로컬 데이터를 지우지 않는다", async () => {
+    mockSignOut.mockResolvedValue({ error: new Error("network") });
+
+    const { result } = renderHook(() => useAuth());
+
+    await expect(
+      act(async () => {
+        await result.current.signOut();
+      })
+    ).rejects.toThrow();
+
+    expect(mockClearLocalUserData).not.toHaveBeenCalled();
   });
 
   it("user_metadata가 없으면 빈 문자열로 설정한다", () => {

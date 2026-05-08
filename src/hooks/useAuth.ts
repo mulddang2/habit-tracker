@@ -3,6 +3,7 @@
 import { useEffect, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAppStore } from "@/stores/useAppStore";
+import { clearLocalUserData } from "@/lib/db/clearLocalData";
 
 export function useAuth() {
   const supabase = useMemo(() => createClient(), []);
@@ -42,6 +43,7 @@ export function useAuth() {
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
+    await clearLocalUserData();
     window.location.href = "/login";
   };
 
