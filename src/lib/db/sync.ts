@@ -1,6 +1,10 @@
 import { db, type SyncQueueItem } from "./local";
 import { createClient } from "@/lib/supabase/client";
 
+// 영구 실패한 항목이 큐 헤드를 영원히 막지 않도록 한도를 둔다.
+// 한도 도달 시 큐에서 제거해 뒤 항목 처리를 차단 해제한다.
+export const MAX_SYNC_RETRIES = 5;
+
 export async function enqueue(
   item: Omit<SyncQueueItem, "id" | "retries" | "created_at">
 ): Promise<void> {
@@ -26,8 +30,20 @@ export async function flush(): Promise<void> {
       await db.sync_queue.delete(item.id!);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
+      const nextRetries = item.retries + 1;
+
+      if (nextRetries >= MAX_SYNC_RETRIES) {
+        // 영구 실패 — 큐에서 제거 후 다음 항목 계속 처리
+        await db.sync_queue.delete(item.id!);
+        console.error(
+          `[sync] 항목 ${item.id} (${item.table}/${item.operation})를 ${MAX_SYNC_RETRIES}회 재시도 후 폐기:`,
+          message
+        );
+        continue;
+      }
+
       await db.sync_queue.update(item.id!, {
-        retries: item.retries + 1,
+        retries: nextRetries,
         last_error: message,
       });
       // 순서를 보장하기 위해 나머지 항목 처리 중단

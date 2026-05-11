@@ -1,9 +1,14 @@
 import "fake-indexeddb/auto";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { db } from "@/lib/db/local";
-import { enqueue, flush, getPendingCount } from "@/lib/db/sync";
+import {
+  enqueue,
+  flush,
+  getPendingCount,
+  MAX_SYNC_RETRIES,
+} from "@/lib/db/sync";
 
-// Supabase 클라이언트 모킹
+// Supabase 클라이언트 모킹 — 기본은 성공. 실패 시나리오는 테스트별로 mockInsert.mockImplementation 사용.
 const mockInsert = vi.fn();
 const mockUpdate = vi.fn();
 const mockDelete = vi.fn();
@@ -12,10 +17,7 @@ const mockEq = vi.fn();
 vi.mock("@/lib/supabase/client", () => ({
   createClient: () => ({
     from: (table: string) => ({
-      insert: (payload: unknown) => {
-        mockInsert(table, payload);
-        return { error: null };
-      },
+      insert: (payload: unknown) => mockInsert(table, payload),
       update: (data: unknown) => {
         mockUpdate(table, data);
         return {
@@ -26,14 +28,17 @@ vi.mock("@/lib/supabase/client", () => ({
         };
       },
       delete: () => ({
-        eq: (col: string, val: string) => {
-          mockDelete(table, col, val);
-          return { error: null };
-        },
+        eq: (col: string, val: string) => mockDelete(table, col, val),
       }),
     }),
   }),
 }));
+
+// 기본 성공 응답
+beforeEach(() => {
+  mockInsert.mockReturnValue({ error: null });
+  mockDelete.mockReturnValue({ error: null });
+});
 
 beforeEach(async () => {
   await db.sync_queue.clear();
@@ -134,6 +139,101 @@ describe("sync module", () => {
       expect(mockUpdate).toHaveBeenCalledTimes(1);
       expect(mockDelete).toHaveBeenCalledTimes(1);
       expect(await getPendingCount()).toBe(0);
+    });
+
+    it("실패 항목의 retries를 증가시키고 뒤 항목 처리를 중단한다 (실제 PostgrestError 형태)", async () => {
+      // 실제 Supabase는 PostgrestError(extends Error)를 반환. RLS 위반 시 PGRST301.
+      const rlsError = Object.assign(
+        new Error("new row violates row-level security policy"),
+        { code: "PGRST301", details: "", hint: "", name: "PostgrestError" }
+      );
+      mockInsert.mockReturnValueOnce({ error: rlsError });
+
+      await enqueue({
+        table: "habits",
+        operation: "INSERT",
+        payload: { id: "fail" },
+      });
+      await enqueue({
+        table: "habits",
+        operation: "INSERT",
+        payload: { id: "ok" },
+      });
+
+      await flush();
+
+      const items = await db.sync_queue.orderBy("id").toArray();
+      expect(items).toHaveLength(2);
+      expect(items[0].retries).toBe(1);
+      expect(items[0].last_error).toContain("row-level security");
+      // 뒤 항목은 손대지 않음
+      expect(items[1].retries).toBe(0);
+    });
+
+    it(`MAX_SYNC_RETRIES(${MAX_SYNC_RETRIES})회 도달 시 항목을 큐에서 제거하고 다음 항목 처리를 계속한다`, async () => {
+      // 첫 항목은 영구 실패(PGRST301 RLS), 둘째 항목은 성공
+      mockInsert.mockImplementation((table: string, payload: { id: string }) =>
+        payload.id === "poison"
+          ? {
+              error: Object.assign(new Error("RLS denied"), {
+                code: "PGRST301",
+                details: "",
+                hint: "",
+                name: "PostgrestError",
+              }),
+            }
+          : { error: null }
+      );
+
+      await db.sync_queue.add({
+        table: "habits",
+        operation: "INSERT",
+        payload: { id: "poison" },
+        created_at: Date.now(),
+        retries: MAX_SYNC_RETRIES - 1, // 한 번 더 실패하면 한도 도달
+      });
+      await enqueue({
+        table: "habits",
+        operation: "INSERT",
+        payload: { id: "ok" },
+      });
+
+      // 콘솔 에러 억제
+      const consoleSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+
+      await flush();
+
+      // poison-pill 제거됨, ok 항목도 처리되어 큐가 빔
+      expect(await getPendingCount()).toBe(0);
+      expect(mockInsert).toHaveBeenCalledTimes(2);
+      expect(consoleSpy).toHaveBeenCalled();
+      consoleSpy.mockRestore();
+    });
+
+    it("retries가 한도 미만이면 그대로 큐에 남는다", async () => {
+      const transientError = Object.assign(new Error("일시 실패"), {
+        code: "503",
+        details: "",
+        hint: "",
+        name: "PostgrestError",
+      });
+      mockInsert.mockReturnValue({ error: transientError });
+
+      await enqueue({
+        table: "habits",
+        operation: "INSERT",
+        payload: { id: "1" },
+      });
+
+      await flush();
+      await flush();
+      await flush();
+
+      const items = await db.sync_queue.toArray();
+      expect(items).toHaveLength(1);
+      expect(items[0].retries).toBe(3);
     });
   });
 
