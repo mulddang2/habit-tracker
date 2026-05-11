@@ -151,6 +151,7 @@ Thumbs.db
 
 # Project planning docs
 habit-tracker-plan.md
+docs/
 
 # Claude Code
 .claude/
