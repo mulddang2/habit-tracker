@@ -4,7 +4,7 @@
 > Next.js 15 · Supabase · IndexedDB · Gemini
 
 - 🔗 **라이브 데모** — <https://habit-tracker-ashy-seven.vercel.app/>
-- 👤 **로그인** — Google 계정으로 로그인 (게스트 모드 추후 추가 예정)
+- 🎭 **데모 진입** — 로그인 페이지의 _"데모 계정으로 둘러보기"_ 버튼 한 번 → 14일치 샘플 데이터가 채워진 화면으로 바로 이동합니다.
 - 📓 **개발 일지** — [1주간 실사용하며 발견한 동기화 결함 6가지를 수정한 사이클 기록](notes/sync-stabilization-log.md)
 
 <!-- ![hero](public/screenshots/hero.png) — Day 3에 추가 -->

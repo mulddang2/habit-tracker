@@ -40,6 +40,21 @@ export function useAuth() {
     if (error) throw error;
   };
 
+  const signInWithDemo = async () => {
+    const email = process.env.NEXT_PUBLIC_DEMO_EMAIL;
+    const password = process.env.NEXT_PUBLIC_DEMO_PASSWORD;
+
+    if (!email || !password) {
+      throw new Error("데모 계정이 설정되지 않았습니다.");
+    }
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (error) throw error;
+  };
+
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
@@ -47,5 +62,5 @@ export function useAuth() {
     window.location.href = "/login";
   };
 
-  return { signInWithGoogle, signOut };
+  return { signInWithGoogle, signInWithDemo, signOut };
 }

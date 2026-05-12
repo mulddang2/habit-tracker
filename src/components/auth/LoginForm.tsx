@@ -5,27 +5,46 @@ import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 
+const demoEnabled = Boolean(
+  process.env.NEXT_PUBLIC_DEMO_EMAIL && process.env.NEXT_PUBLIC_DEMO_PASSWORD
+);
+
+type LoadingState = "google" | "demo" | null;
+
 export function LoginForm() {
-  const { signInWithGoogle } = useAuth();
+  const { signInWithGoogle, signInWithDemo } = useAuth();
   const searchParams = useSearchParams();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<LoadingState>(null);
   const [error, setError] = useState<string | null>(
     searchParams.get("error") === "auth" ? "로그인에 실패했습니다." : null
   );
 
   const handleGoogleLogin = async () => {
     try {
-      setLoading(true);
+      setLoading("google");
       setError(null);
       await signInWithGoogle();
     } catch {
       setError("Google 로그인 중 오류가 발생했습니다.");
-      setLoading(false);
+      setLoading(null);
+    }
+  };
+
+  const handleDemoLogin = async () => {
+    try {
+      setLoading("demo");
+      setError(null);
+      await signInWithDemo();
+      // router.push 대신 풀 리로드 — 새 세션 데이터가 첫 화면부터 보이게.
+      window.location.href = "/habits";
+    } catch {
+      setError("데모 로그인 중 오류가 발생했습니다.");
+      setLoading(null);
     }
   };
 
   return (
-    <div className="flex flex-col gap-4" role="form" aria-label="로그인">
+    <div className="flex flex-col gap-3" role="form" aria-label="로그인">
       {error && (
         <p className="text-destructive text-center text-sm" role="alert">
           {error}
@@ -35,7 +54,7 @@ export function LoginForm() {
         variant="outline"
         size="lg"
         onClick={handleGoogleLogin}
-        disabled={loading}
+        disabled={loading !== null}
         className="w-full gap-2"
       >
         <svg viewBox="0 0 24 24" className="size-5" aria-hidden="true">
@@ -56,8 +75,32 @@ export function LoginForm() {
             fill="#EA4335"
           />
         </svg>
-        {loading ? "로그인 중..." : "Google 계정으로 로그인"}
+        {loading === "google" ? "로그인 중..." : "Google 계정으로 로그인"}
       </Button>
+
+      {demoEnabled && (
+        <>
+          <div
+            className="text-muted-foreground relative my-1 text-center text-xs"
+            aria-hidden="true"
+          >
+            <span className="bg-card relative z-10 px-2">또는</span>
+            <span className="bg-border absolute top-1/2 left-0 z-0 h-px w-full" />
+          </div>
+          <Button
+            variant="secondary"
+            size="lg"
+            onClick={handleDemoLogin}
+            disabled={loading !== null}
+            className="w-full gap-2"
+          >
+            {loading === "demo" ? "로그인 중..." : "🎭 데모 계정으로 둘러보기"}
+          </Button>
+          <p className="text-muted-foreground text-center text-xs">
+            14일치 샘플 데이터로 미리 체험할 수 있어요
+          </p>
+        </>
+      )}
     </div>
   );
 }
