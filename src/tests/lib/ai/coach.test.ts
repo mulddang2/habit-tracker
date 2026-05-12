@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { buildAchievementMatrix, getCoachSuggestion } from "@/lib/ai/coach";
+import {
+  buildAchievementMatrix,
+  buildUserPrompt,
+  getCoachSuggestion,
+} from "@/lib/ai/coach";
 import { GeminiError } from "@/lib/ai/client";
 import type { Habit, HabitLog } from "@/types/habit";
 
@@ -64,6 +68,71 @@ describe("buildAchievementMatrix", () => {
   });
 });
 
+describe("buildUserPrompt — B7: today-completion awareness", () => {
+  it("lists today-completed habits in an explicit exclusion section", () => {
+    const habits = [
+      makeHabit("h-done", "물 마시기"),
+      makeHabit("h-pending", "스트레칭"),
+    ];
+    const logs = [makeLog("h-done", "2026-04-15")];
+
+    const prompt = buildUserPrompt({ habits, logs, today });
+
+    expect(prompt).toContain("오늘 이미 완료한 습관");
+    expect(prompt).toContain("reschedule/simplify/skip 제안 대상에서 제외");
+
+    const exclusionMatch = prompt.match(
+      /오늘 이미 완료한 습관[^[]*(\[[\s\S]*?\])/
+    );
+    expect(exclusionMatch).not.toBeNull();
+    const exclusionPayload = JSON.parse(exclusionMatch![1]);
+    expect(exclusionPayload).toEqual([
+      { habitId: "h-done", title: "물 마시기" },
+    ]);
+  });
+
+  it("lists today-pending habits in a priority section", () => {
+    const habits = [
+      makeHabit("h-done", "물 마시기"),
+      makeHabit("h-pending", "스트레칭"),
+    ];
+    const logs = [makeLog("h-done", "2026-04-15")];
+
+    const prompt = buildUserPrompt({ habits, logs, today });
+
+    expect(prompt).toContain("오늘 아직 완료하지 않은 습관");
+
+    const pendingMatch = prompt.match(
+      /오늘 아직 완료하지 않은 습관[^[]*(\[[\s\S]*?\])/
+    );
+    expect(pendingMatch).not.toBeNull();
+    const pendingPayload = JSON.parse(pendingMatch![1]);
+    expect(pendingPayload).toEqual([
+      { habitId: "h-pending", title: "스트레칭" },
+    ]);
+  });
+
+  it("emits empty arrays — never silently drops sections — when all done or all pending", () => {
+    const habits = [makeHabit("h1", "물 마시기"), makeHabit("h2", "스트레칭")];
+
+    const allDonePrompt = buildUserPrompt({
+      habits,
+      logs: [makeLog("h1", "2026-04-15"), makeLog("h2", "2026-04-15")],
+      today,
+    });
+    const allDonePending = JSON.parse(
+      allDonePrompt.match(/오늘 아직 완료하지 않은 습관[^[]*(\[[\s\S]*?\])/)![1]
+    );
+    expect(allDonePending).toEqual([]);
+
+    const allPendingPrompt = buildUserPrompt({ habits, logs: [], today });
+    const allPendingCompleted = JSON.parse(
+      allPendingPrompt.match(/오늘 이미 완료한 습관[^[]*(\[[\s\S]*?\])/)![1]
+    );
+    expect(allPendingCompleted).toEqual([]);
+  });
+});
+
 describe("getCoachSuggestion", () => {
   beforeEach(() => {
     mockGenerate.mockReset();
@@ -91,7 +160,7 @@ describe("getCoachSuggestion", () => {
 
     expect(result.suggestion.targetHabitId).toBe("h1");
     expect(result.suggestion.action).toBe("reschedule");
-    expect(result.promptVersion).toBe("v1");
+    expect(result.promptVersion).toBe("v2");
     expect(mockGenerate).toHaveBeenCalledTimes(1);
   });
 

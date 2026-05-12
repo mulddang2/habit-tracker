@@ -24,7 +24,9 @@ const SYSTEM_PROMPT = `당신은 데이터 기반 행동 변화 코치입니다.
 - targetHabitId는 반드시 제공된 habits 목록 중 하나여야 합니다.
 - action은 reschedule(시간 변경), simplify(난이도 낮춤), skip(잠시 쉼), encourage(격려) 중 하나.
 - suggestion은 사용자에게 보여줄 한 문장(최대 100자).
-- reason은 데이터에 근거한 판단 이유(최대 200자).`;
+- reason은 데이터에 근거한 판단 이유(최대 200자).
+- 오늘 이미 완료한 습관에는 reschedule/simplify/skip을 제안하지 마세요. 이미 한 일을 다시 권하는 것은 사용자 경험을 해칩니다. 격려(encourage)는 허용됩니다.
+- 가능하면 오늘 아직 완료하지 않은 습관 중에서 골라 제안하세요. 모든 습관이 오늘 이미 완료된 경우에만 완료된 습관에 대해 encourage 액션을 사용하세요.`;
 
 const EXAMPLE_RESPONSE = `{
   "targetHabitId": "habit-123",
@@ -77,9 +79,22 @@ export function buildAchievementMatrix(
 
 export function buildUserPrompt(input: CoachInput): string {
   const matrix = buildAchievementMatrix(input.habits, input.logs, input.today);
+  const completedToday = matrix
+    .filter((m) => m.last14Days[m.last14Days.length - 1].completed)
+    .map((m) => ({ habitId: m.habitId, title: m.title }));
+  const pendingToday = matrix
+    .filter((m) => !m.last14Days[m.last14Days.length - 1].completed)
+    .map((m) => ({ habitId: m.habitId, title: m.title }));
+
   return `다음은 사용자의 최근 14일 습관 데이터입니다.
 
 ${JSON.stringify(matrix, null, 2)}
+
+오늘 이미 완료한 습관 (reschedule/simplify/skip 제안 대상에서 제외):
+${JSON.stringify(completedToday, null, 2)}
+
+오늘 아직 완료하지 않은 습관 (우선 제안 대상):
+${JSON.stringify(pendingToday, null, 2)}
 
 이 데이터를 분석하여, 가장 개선 효과가 클 것 같은 습관 하나를 골라 제안해 주세요.
 응답 형식 예시:

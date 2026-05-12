@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const COACH_PROMPT_VERSION = "v1";
+export const COACH_PROMPT_VERSION = "v2";
 
 export const coachSuggestionSchema = z.object({
   targetHabitId: z.string().min(1),
