@@ -34,7 +34,26 @@ export function useSyncOnReconnect() {
       }
     }
 
+    // 탭이 다시 활성화되거나 창이 포커스되면 서버 상태를 재동기화한다.
+    // 다른 기기에서 발생한 변경(체크·삭제 등)을 따라잡기 위함.
+    function handleVisibilityChange() {
+      if (document.visibilityState === "visible") {
+        refreshFromServer().catch(() => {});
+      }
+    }
+
+    function handleFocus() {
+      refreshFromServer().catch(() => {});
+    }
+
     window.addEventListener("online", handleOnline);
-    return () => window.removeEventListener("online", handleOnline);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleFocus);
+    };
   }, [queryClient]);
 }

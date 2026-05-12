@@ -84,18 +84,88 @@ describe("useSyncOnReconnect", () => {
     });
   });
 
-  it("언마운트 시 online 이벤트 리스너를 정리한다", async () => {
-    const removeEventListenerSpy = vi.spyOn(window, "removeEventListener");
+  it("탭이 다시 활성화되면 hydrate를 실행한다", async () => {
+    const { wrapper } = createQueryWrapper();
+    renderHook(() => useSyncOnReconnect(), { wrapper });
+
+    await vi.waitFor(() => {
+      expect(mockHydrateLocalDb).toHaveBeenCalled();
+    });
+    mockHydrateLocalDb.mockClear();
+
+    act(() => {
+      Object.defineProperty(document, "visibilityState", {
+        configurable: true,
+        get: () => "visible",
+      });
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    await vi.waitFor(() => {
+      expect(mockHydrateLocalDb).toHaveBeenCalled();
+    });
+  });
+
+  it("탭이 숨겨질 때는 hydrate를 실행하지 않는다", async () => {
+    const { wrapper } = createQueryWrapper();
+    renderHook(() => useSyncOnReconnect(), { wrapper });
+
+    await vi.waitFor(() => {
+      expect(mockHydrateLocalDb).toHaveBeenCalled();
+    });
+    mockHydrateLocalDb.mockClear();
+
+    act(() => {
+      Object.defineProperty(document, "visibilityState", {
+        configurable: true,
+        get: () => "hidden",
+      });
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    // hidden 상태 전환 시에는 트리거되지 않아야 함
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(mockHydrateLocalDb).not.toHaveBeenCalled();
+  });
+
+  it("창이 포커스되면 hydrate를 실행한다", async () => {
+    const { wrapper } = createQueryWrapper();
+    renderHook(() => useSyncOnReconnect(), { wrapper });
+
+    await vi.waitFor(() => {
+      expect(mockHydrateLocalDb).toHaveBeenCalled();
+    });
+    mockHydrateLocalDb.mockClear();
+
+    act(() => {
+      window.dispatchEvent(new Event("focus"));
+    });
+
+    await vi.waitFor(() => {
+      expect(mockHydrateLocalDb).toHaveBeenCalled();
+    });
+  });
+
+  it("언마운트 시 online·visibilitychange·focus 리스너를 모두 정리한다", async () => {
+    const windowRemoveSpy = vi.spyOn(window, "removeEventListener");
+    const documentRemoveSpy = vi.spyOn(document, "removeEventListener");
 
     const { wrapper } = createQueryWrapper();
     const { unmount } = renderHook(() => useSyncOnReconnect(), { wrapper });
     unmount();
 
-    const removedEvents = removeEventListenerSpy.mock.calls.map(
+    const removedWindowEvents = windowRemoveSpy.mock.calls.map(
       (call) => call[0]
     );
-    expect(removedEvents).toContain("online");
+    const removedDocumentEvents = documentRemoveSpy.mock.calls.map(
+      (call) => call[0]
+    );
 
-    removeEventListenerSpy.mockRestore();
+    expect(removedWindowEvents).toContain("online");
+    expect(removedWindowEvents).toContain("focus");
+    expect(removedDocumentEvents).toContain("visibilitychange");
+
+    windowRemoveSpy.mockRestore();
+    documentRemoveSpy.mockRestore();
   });
 });
