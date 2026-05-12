@@ -19,11 +19,10 @@ vi.mock("@/hooks/useAuth", () => ({
 }));
 
 describe("LoginForm", () => {
-  let hrefSetter: ReturnType<typeof vi.fn>;
+  const hrefSetter = vi.fn<(value: string) => void>();
 
   beforeEach(() => {
     vi.clearAllMocks();
-    hrefSetter = vi.fn();
     Object.defineProperty(window, "location", {
       configurable: true,
       value: {
