@@ -127,14 +127,14 @@ export function AiCoachCard() {
             <Sparkles className="text-primary h-4 w-4" aria-hidden />
             <p className="text-sm">
               {isOnCooldown
-                ? "오늘은 충분히 제안을 받았어요. 새로운 제안이 필요하면 버튼을 눌러주세요."
-                : "AI 코치가 당신의 14일 패턴을 분석해 맞춤 제안을 드립니다."}
+                ? "최근에 새 제안을 받았어요. 다른 제안이 필요하면 다시 눌러주세요."
+                : "AI 코치가 최근 14일 패턴을 보고 맞춤 제안을 드릴게요."}
             </p>
           </div>
           <div className="flex gap-2">
             {isOnCooldown && (
               <Button size="sm" variant="ghost" onClick={reset}>
-                쿨다운 해제
+                새 제안 받기
               </Button>
             )}
             <Button
@@ -191,7 +191,7 @@ export function AiCoachCard() {
             onClick={() => setShowReason((v) => !v)}
           >
             <Info className="mr-1 h-3 w-3" aria-hidden />
-            {showReason ? "근거 숨기기" : "근거 보기"}
+            {showReason ? "이유 숨기기" : "이유 보기"}
           </Button>
           <Button size="sm" variant="ghost" onClick={handleRequest}>
             다른 제안

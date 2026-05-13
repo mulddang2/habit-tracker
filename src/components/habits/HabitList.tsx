@@ -80,7 +80,7 @@ export function HabitList() {
         </div>
       ) : (
         <p className="text-muted-foreground py-8 text-center text-sm">
-          등록된 습관이 없습니다.
+          아직 등록된 습관이 없어요.
         </p>
       )}
 

@@ -68,7 +68,7 @@ export function CoachEffectSection() {
 
   const pieData = [
     { name: "수락", value: stats.accepted },
-    { name: "거부", value: stats.dismissed },
+    { name: "닫음", value: stats.dismissed },
     { name: "무시", value: stats.ignored },
   ].filter((d) => d.value > 0);
 

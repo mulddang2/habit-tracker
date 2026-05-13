@@ -119,7 +119,9 @@ describe("HabitList", () => {
     renderHabitList();
 
     await waitFor(() => {
-      expect(screen.getByText("등록된 습관이 없습니다.")).toBeInTheDocument();
+      expect(
+        screen.getByText("아직 등록된 습관이 없어요.")
+      ).toBeInTheDocument();
     });
   });
 

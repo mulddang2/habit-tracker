@@ -97,7 +97,7 @@ export function LoginForm() {
             {loading === "demo" ? "로그인 중..." : "🎭 데모 계정으로 둘러보기"}
           </Button>
           <p className="text-muted-foreground text-center text-xs">
-            14일치 샘플 데이터로 미리 체험할 수 있어요
+            14일치 샘플 데이터로 미리 둘러볼 수 있어요
           </p>
         </>
       )}
