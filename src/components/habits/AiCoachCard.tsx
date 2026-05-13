@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Sparkles, X, Info, Check } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { ko } from "date-fns/locale";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useCoachSuggestion } from "@/hooks/useCoach";
@@ -25,9 +27,8 @@ interface PendingResponse {
 
 export function AiCoachCard() {
   const { data: habits, isLoading: habitsLoading } = useHabitsQuery();
-  const isOnCooldown = useCoachStore((s) => s.isOnCooldown());
+  const lastShownAt = useCoachStore((s) => s.lastShownAt);
   const markDismissed = useCoachStore((s) => s.markDismissed);
-  const reset = useCoachStore((s) => s.reset);
 
   const coach = useCoachSuggestion();
   const { track } = useCoachTelemetry();
@@ -120,29 +121,39 @@ export function AiCoachCard() {
   }
 
   if (!response) {
+    const hasHistory = lastShownAt !== null;
+    const intro = hasHistory
+      ? "다른 제안이 필요하면 버튼을 눌러주세요."
+      : "AI 코치가 최근 14일 패턴을 보고 맞춤 제안을 드릴게요.";
+    const buttonLabel = coach.isPending
+      ? "분석 중..."
+      : hasHistory
+        ? "다른 제안 받기"
+        : "제안 받기";
+
     return (
       <Card className="border-primary/20 bg-primary/5">
         <CardContent className="flex items-center justify-between gap-3 py-4">
           <div className="flex items-center gap-2">
-            <Sparkles className="text-primary h-4 w-4" aria-hidden />
-            <p className="text-sm">
-              {isOnCooldown
-                ? "최근에 새 제안을 받았어요. 다른 제안이 필요하면 다시 눌러주세요."
-                : "AI 코치가 최근 14일 패턴을 보고 맞춤 제안을 드릴게요."}
-            </p>
+            <Sparkles className="text-primary h-4 w-4 shrink-0" aria-hidden />
+            <p className="text-sm">{intro}</p>
           </div>
-          <div className="flex gap-2">
-            {isOnCooldown && (
-              <Button size="sm" variant="ghost" onClick={reset}>
-                새 제안 받기
-              </Button>
+          <div className="flex items-center gap-2">
+            {hasHistory && (
+              <span className="text-muted-foreground hidden text-xs sm:inline">
+                {formatDistanceToNow(lastShownAt, {
+                  locale: ko,
+                  addSuffix: true,
+                })}{" "}
+                받음
+              </span>
             )}
             <Button
               size="sm"
               onClick={handleRequest}
               disabled={coach.isPending}
             >
-              {coach.isPending ? "분석 중..." : "제안 받기"}
+              {buttonLabel}
             </Button>
           </div>
         </CardContent>
