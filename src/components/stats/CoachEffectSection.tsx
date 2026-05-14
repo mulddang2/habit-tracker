@@ -146,10 +146,10 @@ export function CoachEffectSection() {
           </div>
         )}
 
-        {/* 수락/거부/무시 파이 차트 */}
+        {/* 수락/닫음/무시 파이 차트 */}
         <div>
           <h4 className="mb-2 text-xs font-medium">제안 반응 분포</h4>
-          <ResponsiveContainer width="100%" height={200}>
+          <ResponsiveContainer width="100%" height={260}>
             <PieChart>
               <Pie
                 data={pieData}
