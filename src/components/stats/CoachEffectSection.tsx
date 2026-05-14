@@ -93,7 +93,7 @@ export function CoachEffectSection() {
             </p>
           </div>
           <div className="rounded-lg border p-3 text-center">
-            <p className="text-muted-foreground text-xs">수락 / 거부</p>
+            <p className="text-muted-foreground text-xs">수락 / 닫음</p>
             <p className="text-2xl font-bold">
               {stats.accepted} / {stats.dismissed}
             </p>

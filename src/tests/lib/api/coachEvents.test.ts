@@ -32,7 +32,7 @@ describe("computeCoachStats", () => {
     expect(stats.byVersion).toHaveLength(0);
   });
 
-  it("수락/거부/무시 카운트가 정확함", () => {
+  it("수락/닫음/무시 카운트가 정확함", () => {
     const events = [
       makeEvent("accepted"),
       makeEvent("accepted"),
