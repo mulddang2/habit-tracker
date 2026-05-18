@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { useWeeklyStats, useMonthlyHabitStats } from "@/hooks/useStats";
-import { createQueryWrapper } from "@/tests/helpers/query-wrapper";
+import { createQueryWrapper } from "@/tests/helpers/queryWrapper";
 import type { Habit, HabitLog } from "@/types/habit";
 
 vi.mock("@/lib/api/habits", () => ({

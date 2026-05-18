@@ -3,7 +3,7 @@ import { renderHook, act } from "@testing-library/react";
 import { useSyncOnReconnect } from "@/hooks/useSyncOnReconnect";
 import { habitKeys } from "@/hooks/useHabits";
 import { habitLogKeys } from "@/hooks/useHabitLogs";
-import { createQueryWrapper } from "@/tests/helpers/query-wrapper";
+import { createQueryWrapper } from "@/tests/helpers/queryWrapper";
 
 const mockFlush = vi.fn();
 const mockHydrateLocalDb = vi.fn();

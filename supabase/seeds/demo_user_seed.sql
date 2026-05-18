@@ -1,7 +1,7 @@
 -- 라이브 데모 계정용 seed
 --
 -- 사용법:
---   psql "$SUPABASE_DB_URL" -v demo_user_id="'<USER_ID>'" -f supabase/seeds/demo-user-seed.sql
+--   psql "$SUPABASE_DB_URL" -v demo_user_id="'<USER_ID>'" -f supabase/seeds/demo_user_seed.sql
 --
 -- 또는 Supabase SQL Editor:
 --   :demo_user_id 자리에 데모 user_id를 SQL 문자열로 치환 (예: 'aaaaaaaa-bbbb-cccc-...')

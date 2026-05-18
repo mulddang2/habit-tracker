@@ -7,7 +7,7 @@ import {
   useToggleHabitLog,
   habitLogKeys,
 } from "@/hooks/useHabitLogs";
-import { createQueryWrapper } from "@/tests/helpers/query-wrapper";
+import { createQueryWrapper } from "@/tests/helpers/queryWrapper";
 import type { HabitLog } from "@/types/habit";
 
 vi.mock("@/lib/api/habitLogs", () => ({

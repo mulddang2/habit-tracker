@@ -7,7 +7,7 @@ import {
   useDeleteHabit,
   habitKeys,
 } from "@/hooks/useHabits";
-import { createQueryWrapper } from "@/tests/helpers/query-wrapper";
+import { createQueryWrapper } from "@/tests/helpers/queryWrapper";
 import type { Habit } from "@/types/habit";
 
 vi.mock("@/lib/api/habits", () => ({
