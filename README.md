@@ -1,18 +1,20 @@
 # Habit Tracker
 
 > 오프라인 퍼스트 멀티 기기 동기화와 AI 코치를 갖춘 개인 습관 트래커.
-> Next.js 15 · Supabase · IndexedDB · Gemini
+> Next.js 16 · Supabase · IndexedDB · Gemini
 
 - 🔗 **라이브 데모** — <https://habit-tracker-ashy-seven.vercel.app/>
 - 🎭 **데모 진입** — 로그인 페이지의 _"데모 계정으로 둘러보기"_ 버튼 한 번 → 14일치 샘플 데이터가 채워진 화면으로 바로 이동합니다.
-- 📓 **개발 일지** — [1주간 실사용하며 발견한 동기화 결함 6가지를 수정한 사이클 기록](notes/sync-stabilization-log.md)
+- 📓 **개발 일지** — [동기화 안정화 사이클 (1주 도그푸딩)](notes/sync-stabilization-log.md)
 
-<!-- ![hero](public/screenshots/hero.png) — Day 3에 추가 -->
+![습관 트래커 — 로그인 · 습관 · 달력 · 통계 한눈에 보기](public/screenshots/screens-overview.png)
+
+![습관 체크 → 통계 반영 흐름](public/screenshots/flow-check-to-stats.gif)
 
 ## 📌 프로젝트 소개
 
 매일 습관을 기록하고 달성률을 시각화하는 개인 생산성 앱입니다.
-모바일과 PC를 오가는 사용 환경을 1차 전제로 두고, **오프라인에서도 끊김 없이 작동**하면서 **여러 기기에서 일관된 상태**를 유지하도록 설계했습니다.
+모바일과 PC를 오가는 사용 환경을 기본 전제로 두고, **오프라인에서도 끊김 없이 작동**하면서 **여러 기기에서 일관된 상태**를 유지하도록 설계했습니다.
 
 ## ✨ 주요 특징
 
@@ -25,12 +27,16 @@
 대표적인 사례:
 
 - hydrate의 `bulkPut`이 미러가 아닌 upsert로 동작해, 다른 기기에서 삭제한 데이터가 전파되지 않던 문제
-- flush–hydrate 경합으로 삭제된 row가 되살아나던 문제
+- flush–hydrate 경합으로 삭제된 row가 되살아나는 문제
 - signOut 시 로컬 큐를 비우지 않아 다음 로그인 계정으로 이전 변경사항이 푸시되던 사용자 경계 누수 문제
 
 ### 2. Gemini 기반 AI 코치
 
-최근 14일치 달성 매트릭스를 프롬프트에 담아 Gemini에 전달하고, **개선 효과가 가장 클 습관 하나**를 선정해 `reschedule / simplify / skip / encourage` 중 한 가지 액션을 제안받습니다. 응답은 `responseSchema`로 JSON 형식을 강제한 뒤 zod로 한 번 더 검증합니다.
+![데스크톱 — AI 코치 카드](public/screenshots/desktop.png)
+
+![모바일 — AI 코치 카드](public/screenshots/mobile.png)
+
+최근 14일치 달성 매트릭스를 프롬프트에 담아 Gemini에 전달하고, **개선 효과가 가장 클 습관 하나**를 선정해 `reschedule / simplify / skip / encourage` 중 한 가지 액션을 제안받습니다. 응답은 `responseSchema`로 JSON 형식을 강제한 뒤 zod로 다시 한 번 검증합니다.
 
 코치의 효과를 측정하기 위해 별도의 텔레메트리 테이블(`coach_events`)을 두었고, 프롬프트 버전(`COACH_PROMPT_VERSION`)을 올리면 **버전별 수락률 비교 차트**가 자동으로 활성화됩니다.
 
@@ -39,7 +45,7 @@
 성격이 다른 상태를 한 도구로 처리하지 않고 책임 단위로 나눴습니다.
 
 - **React Query** — 서버 상태 (습관 목록, 로그, 캐싱과 동기화)
-- **Zustand** — 전역 UI 상태 (로그인 유저, 선택된 날짜, 테마)
+- **Zustand** — 전역 UI 상태 (로그인 유저, 선택된 날짜)
 - **Jotai** — 컴포넌트 트리 안의 원자 상태 (편집 모드, 드래그 순서)
 
 캐시 무효화 같은 **서버 상태 책임이 React Query 한 곳에 모이도록** 정리한 결과, 멀티 기기 동기화 결함 중 한 가지(주간 파생 키 무효화 누락)를 단일 지점에서 수정할 수 있었습니다. 자세한 설계 근거는 [ADR-002](notes/adr/0002-state-management-split.md)에 정리해 두었습니다.
@@ -48,7 +54,7 @@
 
 | 구분          | 기술                                         |
 | ------------- | -------------------------------------------- |
-| 프레임워크    | Next.js 15 (App Router) · React 19           |
+| 프레임워크    | Next.js 16 (App Router) · React 19           |
 | 언어          | TypeScript                                   |
 | 전역 상태     | Zustand                                      |
 | 원자 상태     | Jotai                                        |
@@ -90,7 +96,7 @@ src/
 │   └── validations/         # Zod 입력 검증 스키마
 ├── stores/                   # Zustand — 전역 UI 상태
 ├── atoms/                    # Jotai — 트리 안 원자 상태
-├── tests/                    # Vitest 테스트 (233 케이스)
+├── tests/                    # Vitest 테스트 (236 케이스)
 └── types/                    # TypeScript 타입 정의
 ```
 
@@ -134,41 +140,13 @@ flowchart LR
 - [ADR-001 — 오프라인 퍼스트 + sync_queue 도입](notes/adr/0001-offline-first-with-sync-queue.md)
 - [ADR-002 — 상태 관리 3종 분리 (Zustand · Jotai · React Query)](notes/adr/0002-state-management-split.md)
 
-## 📝 개발 문서
-
-- 📓 [동기화 안정화 일지](notes/sync-stabilization-log.md) — 1주간 직접 사용하며 발견한 동기화 결함 6가지의 발견·수정·회귀 테스트 과정 (233 케이스 통과)
-- 📐 ADR
-  - [ADR-001 — 오프라인 퍼스트 + sync_queue 도입](notes/adr/0001-offline-first-with-sync-queue.md)
-  - [ADR-002 — 상태 관리 3종 분리](notes/adr/0002-state-management-split.md)
-
-## 🚀 시작하기
-
-### 사전 준비
-
-- Node.js 20 이상
-- pnpm
-- Supabase 프로젝트 (URL · anon key)
-- Gemini API 키 ([Google AI Studio](https://aistudio.google.com/app/apikey)에서 발급)
-
-### 설치 및 실행
+## 🚀 로컬에서 실행
 
 ```bash
 pnpm install
-cp .env.example .env.local
-# .env.local에 환경 변수 입력
-pnpm dev
+cp .env.example .env.local   # Supabase URL/anon key, Gemini API 키 입력
+pnpm dev                     # http://localhost:3000
+pnpm test                    # 회귀 테스트 (236 케이스)
 ```
 
-브라우저에서 `http://localhost:3000` 으로 접속합니다.
-
-### 테스트
-
-```bash
-pnpm test            # 1회 실행
-pnpm test:watch      # watch 모드
-pnpm test:coverage   # 커버리지 리포트
-```
-
-## 📄 라이선스
-
-개인 프로젝트 · 포트폴리오 용도
+Node.js 20+ · pnpm · Supabase 프로젝트 · Gemini API 키 필요.
