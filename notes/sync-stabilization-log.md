@@ -37,7 +37,7 @@
 
 - 체크: 0/3
 - 코치: 미사용
-- 메모: 같은 기기에서 계정 전환을 점검하다 B5 발견 — `signOut`이 supabase 세션만 끊고 IndexedDB의 3개 테이블(habits, habit_logs, sync_queue)과 `useCoachStore` persist를 그대로 두는 바람에, 이전 사용자의 미동기화 큐가 다음 사용자 계정으로 푸시되거나 코치 쿨다운 상태가 그대로 인계되는 문제. `src/lib/db/clearLocalData.ts`를 추가하고 `useAuth.signOut`에서 supabase 응답이 성공한 경우에만 호출하도록 수정(실패 시에는 로컬 데이터를 보존 — 일시적인 네트워크 장애로 사용자 데이터가 사라지지 않도록). 테스트 5건 추가. → c126a9d
+- 메모: 같은 기기에서 계정 전환을 점검하다 B5 발견 — `signOut`이 supabase 세션만 끊고 IndexedDB의 3개 테이블(habits, habit_logs, sync_queue)과 `useCoachStore` persist를 그대로 두는 바람에, 이전 사용자의 미동기화 큐가 다음 사용자 계정으로 푸시되거나 코치의 마지막 받음 시각이 그대로 인계되는 문제. `src/lib/db/clearLocalData.ts`를 추가하고 `useAuth.signOut`에서 supabase 응답이 성공한 경우에만 호출하도록 수정(실패 시에는 로컬 데이터를 보존 — 일시적인 네트워크 장애로 사용자 데이터가 사라지지 않도록). 테스트 5건 추가. → c126a9d
 
 ### 7일차 (2026-05-10)
 
@@ -75,7 +75,7 @@ README 검토 중 "여러 기기에서 일관된 상태를 유지" 표현과 실
 - **B3a**: 단일 기기에서 삭제 직후 새로고침하면 삭제한 row가 부활. `enqueue`의 fire-and-forget `flush()`(`src/lib/db/sync.ts:13`)가 새로고침과 경합 → hydrate가 서버 데이터로 다시 복원시킴. B2 수정으로 stale 캐시 가림막이 걷히면서 더 잘 드러남 → aecbd63 (locked ids 패턴 도입)
 - **B3b**: 오프라인 상태에서 수정한 row가 hydrate에 의해 서버의 옛값으로 덮어써질 가능성 존재. B3a와 같은 유형 → aecbd63 (locked ids 패턴, UPDATE도 함께 보호)
 - **B4**: 체크/해제 후 `/stats`의 일별 트렌드에서 오늘 막대가 0%로 stale 상태. `useToggleHabitLog.onSettled`(`src/hooks/useHabitLogs.ts`)가 byDate / byMonth만 무효화해 `useWeeklyStats`의 weekly 파생 키가 누락됨. `useDeleteHabit`도 동일 유형(habit_logs까지 삭제하지만 캐시는 habits만 무효화) → 690f00e
-- **B5**: 같은 기기에서 계정을 전환할 때 이전 사용자의 sync_queue가 다음 사용자 계정으로 푸시되거나 코치 쿨다운이 인계됨. `useAuth.signOut`(`src/hooks/useAuth.ts`)이 supabase 세션만 끊고 IndexedDB·`useCoachStore` persist를 정리하지 않음. `clearLocalUserData()`를 추가하고, supabase 응답이 성공한 경우에만 호출하도록 처리(에러 시에는 보존) → c126a9d
+- **B5**: 같은 기기에서 계정을 전환할 때 이전 사용자의 sync_queue가 다음 사용자 계정으로 푸시되거나 코치의 마지막 받음 시각이 인계됨. `useAuth.signOut`(`src/hooks/useAuth.ts`)이 supabase 세션만 끊고 IndexedDB·`useCoachStore` persist를 정리하지 않음. `clearLocalUserData()`를 추가하고, supabase 응답이 성공한 경우에만 호출하도록 처리(에러 시에는 보존) → c126a9d
 - **B6**: 영구 실패한 sync_queue 항목(RLS 위반 / FK 깨짐 등)이 retries 한도 없이 큐의 헤드를 점유해 뒤 항목 처리를 차단. `flush()`(`src/lib/db/sync.ts`)에 `MAX_SYNC_RETRIES = 5`를 도입, 한도에 도달하면 항목을 폐기해 큐의 막힘을 해소 → fe78279
 - **B7**(사이클 종료 후 해결): 코치가 이미 오늘 완료한 습관에 reschedule/simplify/skip을 제안하는 문제. `src/lib/ai/coach.ts`의 시스템·유저 프롬프트를 수정해 "오늘 완료 항목은 격려만" 규칙을 강제, `COACH_PROMPT_VERSION`을 v2로 올림 → 5ed97fe
 - **B8**(사이클 종료 후 해결): 이미 열려 있는 탭이 다른 기기의 변경을 자동으로 따라잡지 못함. `useSyncOnReconnect`에 `visibilitychange`·`focus` 트리거 추가 → 본 일지의 "마감 이후 후속 개선" 항목 참고
