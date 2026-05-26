@@ -35,13 +35,13 @@
 
 ## 결과 / 트레이드오프
 
-1주간의 도그푸딩 사이클을 거치며 이 구조에 **5가지 결함 유형**이 잠재되어 있다는 점이 드러났고, 모두 회귀 테스트로 수렴시켰다. 사이클 종료 후 README 검토 중 한 가지 누락 지점(B8)을 추가로 발견·보강. 유형별 한 줄 요약은 아래와 같다.
+1주간의 안정화 사이클을 거치며 이 구조에 **5가지 결함 유형**이 잠재되어 있다는 점이 드러났고, 모두 회귀 테스트로 커버했다. 사이클 종료 후 README 검토 중 한 가지 누락 지점(B8)을 추가로 발견·보강. 유형별 한 줄 요약은 아래와 같다.
 
 - **mirror가 아닌 upsert** (B1) — hydrate의 `bulkPut`만으로는 서버에서 **삭제된** row가 로컬에 남는다. mirror는 delta가 아니라 **전체 동기화**여야 한다.
-- **캐시 무효화 누락** (B2, B4) — hydrate 후 React Query 캐시를 무효화하지 않으면, staleTime(5분) 동안 화면이 옛 데이터로 박혀 있다. mutation `onSettled`에서도 **파생 키**(weekly 등)를 빠뜨리기 쉽다.
+- **캐시 무효화 누락** (B2, B4) — hydrate 후 React Query 캐시를 무효화하지 않으면, staleTime(5분) 동안 화면이 옛 데이터에 머문다. mutation `onSettled`에서도 **파생 키**(weekly 등)를 빠뜨리기 쉽다.
 - **flush ↔ hydrate race** (B3a/b) — fire-and-forget 방식의 flush와 hydrate가 경합해 **방금 삭제한 row가 다시 부활**한다. flush 진행 중인 id를 "locked"로 표시해 hydrate가 덮어쓰지 못하게 막는 방식으로 해결.
 - **사용자 경계 누수** (B5) — `signOut`이 supabase 세션만 끊고 IndexedDB·zustand persist를 그대로 두면, 이전 사용자의 미동기화 큐가 **다음 사용자 계정으로 푸시**된다. signOut 시 로컬 데이터까지 명시적으로 비워야 한다.
-- **head-of-line blocking** (B6) — RLS 위반·FK 깨짐 같은 **영구 실패** 항목이 재시도 한도 없이 큐의 가장 앞을 점유해 **멀티 디바이스 동기화 전체를 멈춰 세운다**. `MAX_SYNC_RETRIES = 5` 한도를 도입.
+- **head-of-line blocking** (B6) — RLS 위반·FK 깨짐 같은 **영구 실패** 항목이 재시도 한도 없이 큐의 가장 앞을 점유해 **멀티 디바이스 동기화 전체를 막아 버린다**. `MAX_SYNC_RETRIES = 5` 한도를 도입.
 - **활성 탭의 다른 기기 변경 미반영** (B8, 사이클 마감 이후 보강) — 초기에는 hydrate 트리거가 마운트와 `online`뿐이라, **이미 열려 있는 탭이 다른 기기 변경을 따라잡지 못했다**. `visibilitychange`(visible) · `focus` 이벤트를 추가해, 다른 탭/창에서 돌아오는 시점에 자동 동기화되도록 보강.
 
 발견 → 수정 → 테스트 사이클의 자세한 기록은 [`notes/sync-stabilization-log.md`](../sync-stabilization-log.md) 참고.
