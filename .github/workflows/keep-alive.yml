@@ -1,0 +1,39 @@
+name: Supabase Keep Alive
+
+# 무료 티어 Supabase 프로젝트는 7일 이상 DB 활동이 없으면 자동 일시 중지됩니다.
+# 매일 가벼운 쿼리를 보내 활성 상태를 유지합니다.
+on:
+  schedule:
+    - cron: '0 6 * * *' # 매일 06:00 UTC (KST 15:00)
+  workflow_dispatch: # 필요 시 수동 실행
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST API
+        env:
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::error::Supabase secrets가 설정되지 않았습니다."
+            exit 1
+          fi
+
+          # habits 테이블에 가벼운 쿼리를 보내 DB 활동을 발생시킵니다.
+          # RLS로 행이 비어 있어도 쿼리 자체가 DB를 깨워 일시 중지를 방지합니다.
+          status=$(curl -s -o /dev/null -w "%{http_code}" \
+            "${SUPABASE_URL}/rest/v1/habits?select=id&limit=1" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}")
+
+          echo "HTTP status: $status"
+
+          # 2xx(정상) 또는 RLS로 인한 401/403도 DB가 응답한 것이므로 성공으로 간주합니다.
+          if echo "$status" | grep -qE '^(2..|401|403)$'; then
+            echo "✅ Supabase가 응답했습니다. 프로젝트 활성 상태 유지."
+          else
+            echo "::error::예상치 못한 응답: $status"
+            exit 1
+          fi
