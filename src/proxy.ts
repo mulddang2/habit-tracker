@@ -7,6 +7,7 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|sw\\.js|manifest\\.json|.*\\.(?:svg|png|jpg|jpeg|gif|webp|)$).*)",
+    // api/cron은 Vercel Cron이 인증 쿠키 없이 호출하므로 로그인 리다이렉트에서 제외.
+    "/((?!_next/static|_next/image|favicon.ico|sw\\.js|manifest\\.json|api/cron|.*\\.(?:svg|png|jpg|jpeg|gif|webp|)$).*)",
   ],
 };
