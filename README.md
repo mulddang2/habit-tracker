@@ -72,6 +72,14 @@
 
 ## 📁 폴더 구조
 
+핵심 로직의 위치는 다음과 같습니다.
+
+- **오프라인 퍼스트 동기화** → [src/lib/db/](src/lib/db/) (`sync.ts`, `hydrate.ts`, `clearLocalData.ts`)
+- **AI 코치** → [src/lib/ai/](src/lib/ai/), [src/app/api/coach/](src/app/api/coach/)
+- **React Query 훅 (캐시 무효화 등)** → [src/hooks/useHabitLogs.ts](src/hooks/useHabitLogs.ts)
+
+전체 구조는 다음과 같습니다.
+
 ```text
 src/
 ├── app/                      # Next.js App Router
@@ -99,12 +107,6 @@ src/
 ├── tests/                    # Vitest 테스트 (236 케이스)
 └── types/                    # TypeScript 타입 정의
 ```
-
-핵심 로직이 모여 있는 위치를 빠르게 찾고 싶다면:
-
-- **오프라인 퍼스트 동기화** → [src/lib/db/](src/lib/db/) (`sync.ts`, `hydrate.ts`, `clearLocalData.ts`)
-- **AI 코치** → [src/lib/ai/](src/lib/ai/), [src/app/api/coach/](src/app/api/coach/)
-- **React Query 훅 (캐시 무효화 등)** → [src/hooks/useHabitLogs.ts](src/hooks/useHabitLogs.ts)
 
 ## 🏗 아키텍처
 
@@ -140,27 +142,32 @@ flowchart LR
 - [ADR-001 — 오프라인 퍼스트 + sync_queue 도입](notes/adr/0001-offline-first-with-sync-queue.md)
 - [ADR-002 — 상태 관리 3종 분리 (Zustand · Jotai · React Query)](notes/adr/0002-state-management-split.md)
 
-## 🔧 트러블슈팅 — 오프라인 퍼스트 동기화 안정화 (ADR-001)
-
-모바일·PC를 오가는 멀티 기기 환경에서 오프라인 퍼스트 구조를 **1주간 운영 환경에서 직접 사용(도그푸딩)** 하며 동기화 결함을 드러내고, 모두 회귀 테스트로 고정했습니다. 일자별 발견·수정 기록은 [동기화 안정화 일지](notes/sync-stabilization-log.md), 결함 유형별 설계 근거는 [ADR-001](notes/adr/0001-offline-first-with-sync-queue.md)에 정리되어 있습니다.
+## 🔧 트러블슈팅 — 오프라인 퍼스트 동기화 안정화 (ADR-001 · ADR-002)
 
 **문제**
 
-- **데이터 불일치** — 한 기기에서 오프라인으로 작성·삭제한 변경이 다른 기기에 정상 전파되지 않음.
-- **미러 훼손** — hydrate가 `bulkPut`(upsert)으로만 동작해, 서버에서 삭제된 레코드가 로컬에 유령 데이터로 남음 (B1).
-- **동시성 경합** — 재접속 시 hydrate와 로컬 변경을 서버로 올리는 flush가 경합해, 방금 삭제한 row가 부활하는 race condition 발생 (B3a/b).
-- **head-of-line 블로킹** — RLS 위반·FK 깨짐 같은 **영구 실패** 항목이 재시도 한도 없이 큐 헤드를 점유해, 멀티 기기 동기화 전체가 멈춤 (B6).
+- **기기 간 데이터 불일치** — 모바일과 PC를 오가며 쓰는 환경에서, 오프라인으로 작성한 뒤 다시 접속하면 다른 기기의 변경 사항이 제대로 반영되지 않고 어긋나는 현상이 발생했습니다.
+- **삭제가 로컬에 반영되지 않는 문제** — 기존 하이드레이션(hydration)이 `bulkPut`으로만 동작하다 보니, 서버에서 삭제된 레코드가 로컬에 그대로 남는 결함이 있었습니다.
+- **동시성 문제** — 재접속 시점에 서버 데이터를 내려받는 하이드레이션과 로컬 변경분을 서버로 올리는 플러시(flush)가 동시에 실행되면서 레이스 컨디션과 HOL(Head-of-Line) 블로킹이 발생했습니다.
 
 **해결**
 
-- **서버 기준 미러링 재정의** — hydrate를 delta가 아닌 '서버 최신 스냅샷' 기준 **전체 동기화**로 바꿔, 서버에 없는 로컬 유령 레코드를 제거.
-- **쓰기 잠금 (locked ids)** — flush 진행 중인 레코드 id를 `locked`로 표시해 hydrate가 덮어쓰지 못하게 차단, race condition을 구조적으로 제거 ([hydrate.ts](src/lib/db/hydrate.ts)).
-- **재시도 한도** — `MAX_SYNC_RETRIES = 5`를 도입해 한도 도달 항목을 큐에서 폐기, 후속 동기화 차단을 해소 ([sync.ts](src/lib/db/sync.ts)).
+- **서버 기준 미러링으로 재정의** — 하이드레이션을 변경분(delta) 누적이 아니라 '서버 최신 스냅샷' 기준의 **전체 동기화**로 바꿔, 서버엔 없는데 로컬에만 남아 있던 레코드를 제거했습니다.
+- **쓰기 잠금 (locked ids)** — 플러시 중인 레코드 id를 `locked`로 표시해 하이드레이션이 이를 덮어쓰지 못하게 막아, 레이스 컨디션을 구조적으로 차단했습니다 ([hydrate.ts](src/lib/db/hydrate.ts)).
+- **재시도 한도** — `MAX_SYNC_RETRIES = 5`를 두어 한도에 도달한 항목은 큐에서 격리·폐기하도록 해, 특정 작업의 반복 실패가 이후 동기화 전체를 막던 문제를 해소했습니다 ([sync.ts](src/lib/db/sync.ts)).
+- **캐시 무효화 단일화 (ADR-002)** — 서버 상태 책임을 React Query 한 곳으로 모아, `byDate`/`byMonth`로는 잡히지 않던 주간 파생 키 무효화 누락을 단일 지점에서 해결했습니다 ([useHabitLogs.ts](src/hooks/useHabitLogs.ts)).
 
 **결과**
 
-- 1주 도그푸딩으로 동기화·캐시 결함 **6가지 유형(B1~B6)** 을 발견·수정하고, 사이클 종료 후 README 검토 과정에서 2건(B7·B8)을 추가 보강.
-- 모든 수정에 회귀 테스트를 동반해 **현재 236개 케이스 전부 통과** — 복잡한 분산 데이터 환경에서의 회귀 방지 자산을 확보.
+- 1주간 직접 쓰며(도그푸딩) 아래 동기화·캐시 결함 6가지를 찾아 고쳤습니다.
+  - **B1** — 다른 기기에서 지운 데이터가 이 기기에 그대로 남음
+  - **B2** — 다른 기기에서 추가한 데이터가 화면에 바로 안 보임
+  - **B3** — 삭제·수정 직후 새로고침하면 옛 데이터가 되살아남 (새로고침 경합·오프라인 덮어쓰기 두 갈래)
+  - **B4** — 체크해도 통계의 주간 그래프가 갱신되지 않음
+  - **B5** — 같은 기기에서 계정을 바꾸면 이전 사용자의 데이터가 따라옴
+  - **B6** — 한 번 실패한 동기화 작업이 뒤따르는 작업까지 막음
+- 사이클을 마친 뒤에는, 코치가 이미 끝낸 습관에 엉뚱한 제안을 하던 문제(**B7**)와 열어 둔 탭이 다른 기기의 변경을 자동으로 따라오지 못하던 문제(**B8**)를 더 고쳤습니다. 각 결함의 증상·원인·수정 커밋은 [동기화 안정화 일지](notes/sync-stabilization-log.md)에 하나씩 정리해 두었습니다.
+- 모든 수정에 회귀 테스트를 함께 작성해 **현재 236개 케이스가 전부 통과**합니다 — 분산 데이터 환경에서 같은 결함이 재발하지 않도록 검증하는 회귀 테스트를 확보했습니다.
 
 ## 🚀 로컬에서 실행
 
