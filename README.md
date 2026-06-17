@@ -140,6 +140,28 @@ flowchart LR
 - [ADR-001 — 오프라인 퍼스트 + sync_queue 도입](notes/adr/0001-offline-first-with-sync-queue.md)
 - [ADR-002 — 상태 관리 3종 분리 (Zustand · Jotai · React Query)](notes/adr/0002-state-management-split.md)
 
+## 🔧 트러블슈팅 — 오프라인 퍼스트 동기화 안정화 (ADR-001)
+
+모바일·PC를 오가는 멀티 기기 환경에서 오프라인 퍼스트 구조를 **1주간 운영 환경에서 직접 사용(도그푸딩)** 하며 동기화 결함을 드러내고, 모두 회귀 테스트로 고정했습니다. 일자별 발견·수정 기록은 [동기화 안정화 일지](notes/sync-stabilization-log.md), 결함 유형별 설계 근거는 [ADR-001](notes/adr/0001-offline-first-with-sync-queue.md)에 정리되어 있습니다.
+
+**문제**
+
+- **데이터 불일치** — 한 기기에서 오프라인으로 작성·삭제한 변경이 다른 기기에 정상 전파되지 않음.
+- **미러 훼손** — hydrate가 `bulkPut`(upsert)으로만 동작해, 서버에서 삭제된 레코드가 로컬에 유령 데이터로 남음 (B1).
+- **동시성 경합** — 재접속 시 hydrate와 로컬 변경을 서버로 올리는 flush가 경합해, 방금 삭제한 row가 부활하는 race condition 발생 (B3a/b).
+- **head-of-line 블로킹** — RLS 위반·FK 깨짐 같은 **영구 실패** 항목이 재시도 한도 없이 큐 헤드를 점유해, 멀티 기기 동기화 전체가 멈춤 (B6).
+
+**해결**
+
+- **서버 기준 미러링 재정의** — hydrate를 delta가 아닌 '서버 최신 스냅샷' 기준 **전체 동기화**로 바꿔, 서버에 없는 로컬 유령 레코드를 제거.
+- **쓰기 잠금 (locked ids)** — flush 진행 중인 레코드 id를 `locked`로 표시해 hydrate가 덮어쓰지 못하게 차단, race condition을 구조적으로 제거 ([hydrate.ts](src/lib/db/hydrate.ts)).
+- **재시도 한도** — `MAX_SYNC_RETRIES = 5`를 도입해 한도 도달 항목을 큐에서 폐기, 후속 동기화 차단을 해소 ([sync.ts](src/lib/db/sync.ts)).
+
+**결과**
+
+- 1주 도그푸딩으로 동기화·캐시 결함 **6가지 유형(B1~B6)** 을 발견·수정하고, 사이클 종료 후 README 검토 과정에서 2건(B7·B8)을 추가 보강.
+- 모든 수정에 회귀 테스트를 동반해 **현재 236개 케이스 전부 통과** — 복잡한 분산 데이터 환경에서의 회귀 방지 자산을 확보.
+
 ## 🚀 로컬에서 실행
 
 ```bash
