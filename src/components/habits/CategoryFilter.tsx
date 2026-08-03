@@ -1,11 +1,11 @@
 "use client";
 
-import { useAtom } from "jotai";
-import { categoryFilterAtom } from "@/atoms/habitAtoms";
 import { Button } from "@/components/ui/button";
 import type { Category } from "@/types/habit";
 
-const FILTERS: (Category | "전체")[] = [
+export type CategoryFilterValue = Category | "전체";
+
+const FILTERS: CategoryFilterValue[] = [
   "전체",
   "건강",
   "공부",
@@ -13,9 +13,12 @@ const FILTERS: (Category | "전체")[] = [
   "라이프",
 ];
 
-export function CategoryFilter() {
-  const [selected, setSelected] = useAtom(categoryFilterAtom);
+interface CategoryFilterProps {
+  selected: CategoryFilterValue;
+  onSelect: (filter: CategoryFilterValue) => void;
+}
 
+export function CategoryFilter({ selected, onSelect }: CategoryFilterProps) {
   return (
     <div className="flex gap-2" role="radiogroup" aria-label="카테고리 필터">
       {FILTERS.map((filter) => (
@@ -25,7 +28,7 @@ export function CategoryFilter() {
           size="sm"
           role="radio"
           aria-checked={selected === filter}
-          onClick={() => setSelected(filter)}
+          onClick={() => onSelect(filter)}
         >
           {filter}
         </Button>

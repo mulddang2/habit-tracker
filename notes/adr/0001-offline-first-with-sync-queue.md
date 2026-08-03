@@ -38,7 +38,7 @@
 1주간의 안정화 사이클을 거치며 이 구조에 **5가지 결함 유형**이 잠재되어 있다는 점이 드러났고, 모두 회귀 테스트로 커버했다. 사이클 종료 후 README 검토 중 한 가지 누락 지점(B8)을 추가로 발견·보강. 유형별 한 줄 요약은 아래와 같다.
 
 - **mirror가 아닌 upsert** (B1) — hydrate의 `bulkPut`만으로는 서버에서 **삭제된** row가 로컬에 남는다. mirror는 delta가 아니라 **전체 동기화**여야 한다.
-- **캐시 무효화 누락** (B2, B4) — hydrate 후 React Query 캐시를 무효화하지 않으면, staleTime(5분) 동안 화면이 옛 데이터에 머문다. mutation `onSettled`에서도 **파생 키**(weekly 등)를 빠뜨리기 쉽다.
+- **캐시 무효화 누락** (B2, B4) — hydrate 후 TanStack Query 캐시를 무효화하지 않으면, staleTime(5분) 동안 화면이 옛 데이터에 머문다. mutation `onSettled`에서도 **파생 키**(weekly 등)를 빠뜨리기 쉽다.
 - **flush ↔ hydrate race** (B3a/b) — fire-and-forget 방식의 flush와 hydrate가 경합해 **방금 삭제한 row가 다시 부활**한다. flush 진행 중인 id를 "locked"로 표시해 hydrate가 덮어쓰지 못하게 막는 방식으로 해결.
 - **사용자 경계 누수** (B5) — `signOut`이 supabase 세션만 끊고 IndexedDB·zustand persist를 그대로 두면, 이전 사용자의 미동기화 큐가 **다음 사용자 계정으로 푸시**된다. signOut 시 로컬 데이터까지 명시적으로 비워야 한다.
 - **head-of-line blocking** (B6) — RLS 위반·FK 깨짐 같은 **영구 실패** 항목이 재시도 한도 없이 큐의 가장 앞을 점유해 **멀티 디바이스 동기화 전체를 막아 버린다**. `MAX_SYNC_RETRIES = 5` 한도를 도입.
@@ -54,7 +54,7 @@
 ## 대안 검토
 
 - **Supabase Realtime 채널** — 멀티 디바이스 push 갱신을 깔끔하게 해결할 수 있지만, (a) 오프라인 시나리오 자체를 해결해주지는 못하고, (b) WebSocket 채널을 추가로 관리해야 하는 부담이 생긴다. 후속 작업으로 분리.
-- **`useSWR` 또는 React Query 단독 캐싱** — 메모리 캐시는 새로고침이나 앱 종료 시 휘발된다. mirror가 **디스크에** 있어야 오프라인 첫 진입 시 화면이 비어 있지 않다.
+- **`useSWR` 또는 TanStack Query 단독 캐싱** — 메모리 캐시는 새로고침이나 앱 종료 시 휘발된다. mirror가 **디스크에** 있어야 오프라인 첫 진입 시 화면이 비어 있지 않다.
 - **Service Worker만으로 background sync** — Workbox / Serwist의 background-sync는 **요청 큐**에 가까워, 도메인 mutation의 **논리적 순서**를 보장하기 어렵다. `sync_queue`는 도메인 객체 단위로 직렬화한다.
 
 ## 참고

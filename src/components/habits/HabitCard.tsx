@@ -3,7 +3,7 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Bell, Pencil, Trash2 } from "lucide-react";
+import { Bell, ChevronDown, ChevronUp, Pencil, Trash2 } from "lucide-react";
 import type { Habit, Category } from "@/types/habit";
 
 const CATEGORY_COLORS: Record<Category, string> = {
@@ -20,6 +20,11 @@ interface HabitCardProps {
   onToggle: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  canReorder: boolean;
 }
 
 export function HabitCard({
@@ -28,6 +33,11 @@ export function HabitCard({
   onToggle,
   onEdit,
   onDelete,
+  onMoveUp,
+  onMoveDown,
+  canMoveUp,
+  canMoveDown,
+  canReorder,
 }: HabitCardProps) {
   return (
     <div
@@ -63,6 +73,28 @@ export function HabitCard({
       </div>
 
       <div className="flex gap-1">
+        {canReorder && (
+          <>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              onClick={onMoveUp}
+              disabled={!canMoveUp}
+              aria-label={`${habit.title} 위로 이동`}
+            >
+              <ChevronUp />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              onClick={onMoveDown}
+              disabled={!canMoveDown}
+              aria-label={`${habit.title} 아래로 이동`}
+            >
+              <ChevronDown />
+            </Button>
+          </>
+        )}
         <Button
           variant="ghost"
           size="icon-xs"

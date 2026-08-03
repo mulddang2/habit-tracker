@@ -71,7 +71,7 @@ README 검토 중 "여러 기기에서 일관된 상태를 유지" 표현과 실
 ## 발견한 이슈 / 아이디어 모음
 
 - **B1**: 멀티 디바이스 환경에서 삭제한 데이터가 다른 기기 로컬에 그대로 남음. hydrate(`src/lib/db/hydrate.ts`)가 `bulkPut`만 사용해 mirror가 아닌 upsert로 동작 → 6d63848
-- **B2**: 운영 환경의 신규 데이터(체크 등)가 다른 기기 화면에 즉시 반영되지 않음. hydrate 이후 React Query 캐시 무효화가 누락되어(`src/hooks/useSyncOnReconnect.ts`), staleTime 5분 동안 stale 상태가 유지됨 → 6d63848
+- **B2**: 운영 환경의 신규 데이터(체크 등)가 다른 기기 화면에 즉시 반영되지 않음. hydrate 이후 TanStack Query 캐시 무효화가 누락되어(`src/hooks/useSyncOnReconnect.ts`), staleTime 5분 동안 stale 상태가 유지됨 → 6d63848
 - **B3a**: 단일 기기에서 삭제 직후 새로고침하면 삭제한 row가 부활. `enqueue`의 fire-and-forget `flush()`(`src/lib/db/sync.ts:13`)가 새로고침과 경합 → hydrate가 서버 데이터로 다시 복원시킴. B2 수정으로 stale 캐시 가림막이 걷히면서 더 잘 드러남 → aecbd63 (locked ids 패턴 도입)
 - **B3b**: 오프라인 상태에서 수정한 row가 hydrate에 의해 서버의 옛값으로 덮어써질 가능성 존재. B3a와 같은 유형 → aecbd63 (locked ids 패턴, UPDATE도 함께 보호)
 - **B4**: 체크/해제 후 `/stats`의 일별 트렌드에서 오늘 막대가 0%로 stale 상태. `useToggleHabitLog.onSettled`(`src/hooks/useHabitLogs.ts`)가 byDate / byMonth만 무효화해 `useWeeklyStats`의 weekly 파생 키가 누락됨. `useDeleteHabit`도 동일 유형(habit_logs까지 삭제하지만 캐시는 habits만 무효화) → 690f00e

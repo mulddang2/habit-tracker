@@ -1,26 +1,33 @@
 "use client";
 
 import { useState } from "react";
-import { useAtomValue } from "jotai";
-import { categoryFilterAtom } from "@/atoms/habitAtoms";
-import { useHabitsQuery, useDeleteHabit } from "@/hooks/useHabits";
+import {
+  useHabitsQuery,
+  useDeleteHabit,
+  useReorderHabit,
+} from "@/hooks/useHabits";
 import { useTodayLogs, useToggleHabitLog } from "@/hooks/useHabitLogs";
 import { useHabitReminders } from "@/hooks/useReminder";
 import { useAppStore } from "@/stores/useAppStore";
 import { HabitCard } from "@/components/habits/HabitCard";
 import { HabitCardSkeleton } from "@/components/habits/HabitCardSkeleton";
 import { EditHabitDialog } from "@/components/habits/EditHabitDialog";
-import { CategoryFilter } from "@/components/habits/CategoryFilter";
+import {
+  CategoryFilter,
+  type CategoryFilterValue,
+} from "@/components/habits/CategoryFilter";
 import { Button } from "@/components/ui/button";
 import type { Habit } from "@/types/habit";
 
 export function HabitList() {
   const selectedDate = useAppStore((s) => s.selectedDate);
-  const categoryFilter = useAtomValue(categoryFilterAtom);
+  const [categoryFilter, setCategoryFilter] =
+    useState<CategoryFilterValue>("전체");
   const { data: habits, isLoading, error, refetch } = useHabitsQuery();
   const { data: logs } = useTodayLogs(selectedDate);
   const toggleLog = useToggleHabitLog(selectedDate);
   const deleteHabit = useDeleteHabit();
+  const reorderHabit = useReorderHabit();
 
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
 
@@ -32,6 +39,22 @@ export function HabitList() {
     categoryFilter === "전체"
       ? habits
       : habits?.filter((h) => h.category === categoryFilter);
+
+  const canReorder = categoryFilter === "전체";
+
+  const moveHabit = (habitId: string, direction: "up" | "down") => {
+    if (!habits) return;
+    const index = habits.findIndex((h) => h.id === habitId);
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (index === -1 || targetIndex < 0 || targetIndex >= habits.length) return;
+
+    const current = habits[index];
+    const target = habits[targetIndex];
+    reorderHabit.mutate([
+      { id: current.id, order: target.order },
+      { id: target.id, order: current.order },
+    ]);
+  };
 
   if (isLoading) {
     return (
@@ -58,25 +81,37 @@ export function HabitList() {
 
   return (
     <div className="flex flex-col gap-4">
-      <CategoryFilter />
+      <CategoryFilter selected={categoryFilter} onSelect={setCategoryFilter} />
 
       {filteredHabits && filteredHabits.length > 0 ? (
         <div className="flex flex-col gap-2" role="list" aria-label="습관 목록">
-          {filteredHabits.map((habit) => (
-            <HabitCard
-              key={habit.id}
-              habit={habit}
-              isCompleted={completedIds.has(habit.id)}
-              onToggle={() =>
-                toggleLog.mutate({
-                  habitId: habit.id,
-                  isCompleted: completedIds.has(habit.id),
-                })
-              }
-              onEdit={() => setEditingHabit(habit)}
-              onDelete={() => deleteHabit.mutate(habit.id)}
-            />
-          ))}
+          {filteredHabits.map((habit) => {
+            const index = habits?.findIndex((h) => h.id === habit.id) ?? -1;
+            return (
+              <HabitCard
+                key={habit.id}
+                habit={habit}
+                isCompleted={completedIds.has(habit.id)}
+                onToggle={() =>
+                  toggleLog.mutate({
+                    habitId: habit.id,
+                    isCompleted: completedIds.has(habit.id),
+                  })
+                }
+                onEdit={() => setEditingHabit(habit)}
+                onDelete={() => deleteHabit.mutate(habit.id)}
+                onMoveUp={() => moveHabit(habit.id, "up")}
+                onMoveDown={() => moveHabit(habit.id, "down")}
+                canMoveUp={canReorder && index > 0}
+                canMoveDown={
+                  canReorder &&
+                  index !== -1 &&
+                  index < (habits?.length ?? 0) - 1
+                }
+                canReorder={canReorder}
+              />
+            );
+          })}
         </div>
       ) : (
         <p className="text-muted-foreground py-8 text-center text-sm">

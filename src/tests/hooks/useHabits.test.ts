@@ -5,6 +5,7 @@ import {
   useCreateHabit,
   useUpdateHabit,
   useDeleteHabit,
+  useReorderHabit,
   habitKeys,
 } from "@/hooks/useHabits";
 import { createQueryWrapper } from "@/tests/helpers/queryWrapper";
@@ -174,6 +175,54 @@ describe("useUpdateHabit", () => {
 
     const cached = queryClient.getQueryData<Habit[]>(habitKeys.list());
     expect(cached?.[0].title).toBe("물 2L 마시기");
+  });
+});
+
+describe("useReorderHabit", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("옵티미스틱 업데이트로 두 습관의 순서를 맞바꾼다", async () => {
+    vi.mocked(updateHabit).mockResolvedValue(mockHabits[0]);
+    const { wrapper, queryClient } = createQueryWrapper();
+
+    queryClient.setQueryData(habitKeys.list(), mockHabits);
+
+    const { result } = renderHook(() => useReorderHabit(), { wrapper });
+
+    result.current.mutate([
+      { id: "1", order: 2 },
+      { id: "2", order: 1 },
+    ]);
+
+    await waitFor(() => {
+      const cached = queryClient.getQueryData<Habit[]>(habitKeys.list());
+      expect(cached?.[0].id).toBe("2");
+      expect(cached?.[0].order).toBe(1);
+      expect(cached?.[1].id).toBe("1");
+      expect(cached?.[1].order).toBe(2);
+    });
+  });
+
+  it("서버 에러 시 이전 순서로 롤백한다", async () => {
+    vi.mocked(updateHabit).mockRejectedValue(new Error("reorder error"));
+    const { wrapper, queryClient } = createQueryWrapper();
+
+    queryClient.setQueryData(habitKeys.list(), mockHabits);
+
+    const { result } = renderHook(() => useReorderHabit(), { wrapper });
+
+    result.current.mutate([
+      { id: "1", order: 2 },
+      { id: "2", order: 1 },
+    ]);
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    const cached = queryClient.getQueryData<Habit[]>(habitKeys.list());
+    expect(cached?.[0].id).toBe("1");
+    expect(cached?.[0].order).toBe(1);
   });
 });
 

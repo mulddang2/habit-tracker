@@ -1,9 +1,6 @@
-import type { ReactNode } from "react";
 import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
 import { axe } from "vitest-axe";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Provider } from "jotai";
 import { HabitCard } from "@/components/habits/HabitCard";
 import { CategoryFilter } from "@/components/habits/CategoryFilter";
 import type { Habit } from "@/types/habit";
@@ -19,20 +16,6 @@ const mockHabit: Habit = {
   updated_at: "2026-04-01",
 };
 
-function createWrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
-  });
-  function Wrapper({ children }: { children: ReactNode }) {
-    return (
-      <QueryClientProvider client={queryClient}>
-        <Provider>{children}</Provider>
-      </QueryClientProvider>
-    );
-  }
-  return Wrapper;
-}
-
 describe("접근성 감사 - 미검사 컴포넌트", () => {
   it("HabitCard - 접근성 위반 없음", async () => {
     const { container } = render(
@@ -43,6 +26,11 @@ describe("접근성 감사 - 미검사 컴포넌트", () => {
           onToggle={vi.fn()}
           onEdit={vi.fn()}
           onDelete={vi.fn()}
+          onMoveUp={vi.fn()}
+          onMoveDown={vi.fn()}
+          canMoveUp={true}
+          canMoveDown={true}
+          canReorder={true}
         />
       </ul>
     );
@@ -59,6 +47,11 @@ describe("접근성 감사 - 미검사 컴포넌트", () => {
           onToggle={vi.fn()}
           onEdit={vi.fn()}
           onDelete={vi.fn()}
+          onMoveUp={vi.fn()}
+          onMoveDown={vi.fn()}
+          canMoveUp={true}
+          canMoveDown={true}
+          canReorder={true}
         />
       </ul>
     );
@@ -76,6 +69,11 @@ describe("접근성 감사 - 미검사 컴포넌트", () => {
           onToggle={vi.fn()}
           onEdit={vi.fn()}
           onDelete={vi.fn()}
+          onMoveUp={vi.fn()}
+          onMoveDown={vi.fn()}
+          canMoveUp={true}
+          canMoveDown={true}
+          canReorder={true}
         />
       </ul>
     );
@@ -84,11 +82,8 @@ describe("접근성 감사 - 미검사 컴포넌트", () => {
   });
 
   it("CategoryFilter - 접근성 위반 없음", async () => {
-    const Wrapper = createWrapper();
     const { container } = render(
-      <Wrapper>
-        <CategoryFilter />
-      </Wrapper>
+      <CategoryFilter selected="전체" onSelect={vi.fn()} />
     );
     const results = await axe(container);
     expect(results).toHaveNoViolations();

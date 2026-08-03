@@ -4,7 +4,7 @@ name: Supabase Keep Alive
 # 매일 가벼운 쿼리를 보내 활성 상태를 유지합니다.
 on:
   schedule:
-    - cron: '0 6 * * *' # 매일 06:00 UTC (KST 15:00)
+    - cron: "0 6 * * *" # 매일 06:00 UTC (KST 15:00)
   workflow_dispatch: # 필요 시 수동 실행
 
 jobs:

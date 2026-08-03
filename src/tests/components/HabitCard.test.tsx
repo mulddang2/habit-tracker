@@ -21,6 +21,11 @@ const defaultProps = {
   onToggle: vi.fn(),
   onEdit: vi.fn(),
   onDelete: vi.fn(),
+  onMoveUp: vi.fn(),
+  onMoveDown: vi.fn(),
+  canMoveUp: true,
+  canMoveDown: true,
+  canReorder: true,
 };
 
 describe("HabitCard", () => {
@@ -73,5 +78,48 @@ describe("HabitCard", () => {
     await userEvent.click(deleteButton);
 
     expect(onDelete).toHaveBeenCalledOnce();
+  });
+
+  it("위로 이동 버튼 클릭 시 onMoveUp을 호출한다", async () => {
+    const onMoveUp = vi.fn();
+    render(<HabitCard {...defaultProps} onMoveUp={onMoveUp} />);
+
+    const moveUpButton = screen.getByLabelText("물 2L 마시기 위로 이동");
+    await userEvent.click(moveUpButton);
+
+    expect(onMoveUp).toHaveBeenCalledOnce();
+  });
+
+  it("아래로 이동 버튼 클릭 시 onMoveDown을 호출한다", async () => {
+    const onMoveDown = vi.fn();
+    render(<HabitCard {...defaultProps} onMoveDown={onMoveDown} />);
+
+    const moveDownButton = screen.getByLabelText("물 2L 마시기 아래로 이동");
+    await userEvent.click(moveDownButton);
+
+    expect(onMoveDown).toHaveBeenCalledOnce();
+  });
+
+  it("canMoveUp이 false면 위로 이동 버튼이 비활성화된다", () => {
+    render(<HabitCard {...defaultProps} canMoveUp={false} />);
+
+    expect(screen.getByLabelText("물 2L 마시기 위로 이동")).toBeDisabled();
+  });
+
+  it("canMoveDown이 false면 아래로 이동 버튼이 비활성화된다", () => {
+    render(<HabitCard {...defaultProps} canMoveDown={false} />);
+
+    expect(screen.getByLabelText("물 2L 마시기 아래로 이동")).toBeDisabled();
+  });
+
+  it("canReorder가 false면 위아래 이동 버튼이 렌더링되지 않는다", () => {
+    render(<HabitCard {...defaultProps} canReorder={false} />);
+
+    expect(
+      screen.queryByLabelText("물 2L 마시기 위로 이동")
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("물 2L 마시기 아래로 이동")
+    ).not.toBeInTheDocument();
   });
 });

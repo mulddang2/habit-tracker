@@ -96,6 +96,39 @@ export function useUpdateHabit() {
   });
 }
 
+export function useReorderHabit() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (swaps: { id: string; order: number }[]) =>
+      Promise.all(swaps.map(({ id, order }) => updateHabit(id, { order }))),
+    onMutate: async (swaps) => {
+      await queryClient.cancelQueries({ queryKey: habitKeys.list() });
+      const previous = queryClient.getQueryData<Habit[]>(habitKeys.list());
+
+      const orderMap = new Map(swaps.map((s) => [s.id, s.order]));
+      queryClient.setQueryData<Habit[]>(habitKeys.list(), (old) =>
+        old
+          ?.map((h) =>
+            orderMap.has(h.id) ? { ...h, order: orderMap.get(h.id)! } : h
+          )
+          .sort((a, b) => a.order - b.order)
+      );
+
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(habitKeys.list(), context.previous);
+      }
+      toast.error("순서 변경에 실패했습니다. 다시 시도해주세요.");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: habitKeys.list() });
+    },
+  });
+}
+
 export function useDeleteHabit() {
   const queryClient = useQueryClient();
 

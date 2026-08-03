@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Provider } from "jotai";
 import { HabitList } from "@/components/habits/HabitList";
 import type { Habit, HabitLog } from "@/types/habit";
 
@@ -62,9 +62,7 @@ function renderHabitList() {
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <Provider>
-        <HabitList />
-      </Provider>
+      <HabitList />
     </QueryClientProvider>
   );
 }
@@ -122,6 +120,42 @@ describe("HabitList", () => {
       expect(
         screen.getByText("아직 등록된 습관이 없어요.")
       ).toBeInTheDocument();
+    });
+  });
+
+  it("첫 번째 습관은 위로 이동 버튼이, 마지막 습관은 아래로 이동 버튼이 비활성화된다", async () => {
+    vi.mocked(fetchHabits).mockResolvedValue(mockHabits);
+    vi.mocked(fetchLogsByDate).mockResolvedValue(mockLogs);
+
+    renderHabitList();
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("물 마시기 위로 이동")).toBeDisabled();
+      expect(screen.getByLabelText("물 마시기 아래로 이동")).toBeEnabled();
+      expect(screen.getByLabelText("코딩하기 위로 이동")).toBeEnabled();
+      expect(screen.getByLabelText("코딩하기 아래로 이동")).toBeDisabled();
+    });
+  });
+
+  it("카테고리 필터가 걸리면 위/아래 이동 버튼이 노출되지 않는다", async () => {
+    vi.mocked(fetchHabits).mockResolvedValue(mockHabits);
+    vi.mocked(fetchLogsByDate).mockResolvedValue(mockLogs);
+
+    renderHabitList();
+
+    await waitFor(() => {
+      expect(screen.getByText("물 마시기")).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByRole("radio", { name: "건강" }));
+
+    await waitFor(() => {
+      expect(
+        screen.queryByLabelText("물 마시기 위로 이동")
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByLabelText("물 마시기 아래로 이동")
+      ).not.toBeInTheDocument();
     });
   });
 
