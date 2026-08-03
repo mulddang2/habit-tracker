@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import {
   Card,
@@ -9,6 +10,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { LoginForm } from "@/components/auth/LoginForm";
+
+// 랜딩(/)이 유일한 색인 대상 — 로그인 화면은 중복 진입점이 되지 않도록 제외합니다.
+export const metadata: Metadata = {
+  title: "로그인",
+  robots: { index: false, follow: true },
+};
 
 export default function LoginPage() {
   return (

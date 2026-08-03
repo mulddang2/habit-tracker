@@ -2,7 +2,7 @@
   "name": "습관 트래커",
   "short_name": "습관",
   "description": "매일 습관을 기록·달성·시각화하는 개인 생산성 앱",
-  "start_url": "/",
+  "start_url": "/habits",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#000000",

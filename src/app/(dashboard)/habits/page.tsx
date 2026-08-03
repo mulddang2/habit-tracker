@@ -1,7 +1,10 @@
+import type { Metadata } from "next";
 import { TodayHeader } from "@/components/habits/TodayHeader";
 import { HabitList } from "@/components/habits/HabitList";
 import { AddHabitDialog } from "@/components/habits/AddHabitDialog";
 import { AiCoachCard } from "@/components/habits/AiCoachCard";
+
+export const metadata: Metadata = { title: "오늘의 습관" };
 
 export default function HabitsPage() {
   return (

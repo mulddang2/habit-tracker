@@ -2,6 +2,13 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import { QueryProvider } from "@/components/providers/QueryProvider";
+import {
+  siteDescription,
+  siteName,
+  siteOgImage,
+  siteTagline,
+  siteUrl,
+} from "@/lib/site";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -19,13 +26,42 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "습관 트래커",
-  description: "매일 습관을 기록·달성·시각화하는 개인 생산성 앱",
+  // OG 이미지·canonical이 절대 URL로 직렬화되도록 기준 URL을 지정합니다.
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: `${siteName} — ${siteTagline}`,
+    template: `%s | ${siteName}`,
+  },
+  description: siteDescription,
+  applicationName: siteName,
+  keywords: [
+    "습관 트래커",
+    "습관 관리 앱",
+    "루틴 기록",
+    "체크리스트",
+    "오프라인 PWA",
+    "habit tracker",
+  ],
   manifest: "/manifest.json",
+  openGraph: {
+    type: "website",
+    url: "/",
+    siteName,
+    title: `${siteName} — ${siteTagline}`,
+    description: siteDescription,
+    locale: "ko_KR",
+    images: [siteOgImage],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${siteName} — ${siteTagline}`,
+    description: siteDescription,
+    images: [siteOgImage.url],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "습관 트래커",
+    title: siteName,
   },
 };
 
