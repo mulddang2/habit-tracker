@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { db } from "@/lib/db/local";
 import {
   enqueue,
-  flush,
+  pushToServer,
   getPendingCount,
   MAX_SYNC_RETRIES,
 } from "@/lib/db/sync";
@@ -43,7 +43,7 @@ beforeEach(() => {
 beforeEach(async () => {
   await db.sync_queue.clear();
   vi.clearAllMocks();
-  // enqueue가 자동 flush를 트리거하지 않도록 오프라인 상태로 둠
+  // enqueue가 자동 전송을 트리거하지 않도록 오프라인 상태로 둠
   Object.defineProperty(navigator, "onLine", {
     configurable: true,
     value: false,
@@ -66,7 +66,7 @@ describe("sync module", () => {
     });
   });
 
-  describe("flush", () => {
+  describe("pushToServer 전송", () => {
     it("INSERT 항목을 처리하고 큐에서 제거한다", async () => {
       await enqueue({
         table: "habits",
@@ -74,7 +74,7 @@ describe("sync module", () => {
         payload: { id: "1", title: "테스트" },
       });
 
-      await flush();
+      await pushToServer();
 
       expect(mockInsert).toHaveBeenCalledWith("habits", {
         id: "1",
@@ -90,7 +90,7 @@ describe("sync module", () => {
         payload: { id: "1", title: "수정됨" },
       });
 
-      await flush();
+      await pushToServer();
 
       expect(mockUpdate).toHaveBeenCalledWith("habits", { title: "수정됨" });
       expect(mockEq).toHaveBeenCalledWith("id", "1");
@@ -103,13 +103,13 @@ describe("sync module", () => {
         payload: { id: "1" },
       });
 
-      await flush();
+      await pushToServer();
 
       expect(mockDelete).toHaveBeenCalledWith("habits", "id", "1");
     });
 
     it("큐가 비어있으면 아무 작업도 하지 않는다", async () => {
-      await flush();
+      await pushToServer();
 
       expect(mockInsert).not.toHaveBeenCalled();
       expect(mockUpdate).not.toHaveBeenCalled();
@@ -133,7 +133,7 @@ describe("sync module", () => {
         payload: { id: "1" },
       });
 
-      await flush();
+      await pushToServer();
 
       expect(mockInsert).toHaveBeenCalledTimes(1);
       expect(mockUpdate).toHaveBeenCalledTimes(1);
@@ -160,7 +160,7 @@ describe("sync module", () => {
         payload: { id: "ok" },
       });
 
-      await flush();
+      await pushToServer();
 
       const items = await db.sync_queue.orderBy("id").toArray();
       expect(items).toHaveLength(2);
@@ -203,7 +203,7 @@ describe("sync module", () => {
         .spyOn(console, "error")
         .mockImplementation(() => {});
 
-      await flush();
+      await pushToServer();
 
       // poison-pill 제거됨, ok 항목도 처리되어 큐가 빔
       expect(await getPendingCount()).toBe(0);
@@ -227,9 +227,9 @@ describe("sync module", () => {
         payload: { id: "1" },
       });
 
-      await flush();
-      await flush();
-      await flush();
+      await pushToServer();
+      await pushToServer();
+      await pushToServer();
 
       const items = await db.sync_queue.toArray();
       expect(items).toHaveLength(1);

@@ -1,7 +1,7 @@
 import "fake-indexeddb/auto";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { db } from "@/lib/db/local";
-import { hydrateLocalDb } from "@/lib/db/hydrate";
+import { pullFromServer } from "@/lib/db/pull";
 import type { Habit, HabitLog } from "@/types/habit";
 
 const mockGetUser = vi.fn();
@@ -61,12 +61,12 @@ beforeEach(async () => {
   mockGetUser.mockResolvedValue({ data: { user: { id: "user-1" } } });
 });
 
-describe("hydrateLocalDb", () => {
+describe("pullFromServer", () => {
   it("인증된 사용자의 데이터를 서버에서 로컬 DB로 가져온다", async () => {
     habitsResponse = { data: [sampleHabit()], error: null };
     logsResponse = { data: [sampleLog()], error: null };
 
-    await hydrateLocalDb();
+    await pullFromServer();
 
     const habits = await db.habits.toArray();
     expect(habits).toHaveLength(1);
@@ -81,7 +81,7 @@ describe("hydrateLocalDb", () => {
     mockGetUser.mockResolvedValue({ data: { user: null } });
     habitsResponse = { data: [sampleHabit()], error: null };
 
-    await hydrateLocalDb();
+    await pullFromServer();
 
     const habits = await db.habits.toArray();
     expect(habits).toHaveLength(0);
@@ -91,7 +91,7 @@ describe("hydrateLocalDb", () => {
     await db.habits.add(sampleHabit({ title: "오래된 제목" }));
     habitsResponse = { data: [sampleHabit({ title: "운동" })], error: null };
 
-    await hydrateLocalDb();
+    await pullFromServer();
 
     const habits = await db.habits.toArray();
     expect(habits).toHaveLength(1);
@@ -106,7 +106,7 @@ describe("hydrateLocalDb", () => {
       error: null,
     };
 
-    await hydrateLocalDb();
+    await pullFromServer();
 
     const habits = await db.habits.toArray();
     expect(habits.map((h) => h.id)).toEqual(["h-keep"]);
@@ -117,7 +117,7 @@ describe("hydrateLocalDb", () => {
     await db.habit_logs.add(sampleLog({ id: "l-keep" }));
     logsResponse = { data: [sampleLog({ id: "l-keep" })], error: null };
 
-    await hydrateLocalDb();
+    await pullFromServer();
 
     const logs = await db.habit_logs.toArray();
     expect(logs.map((l) => l.id)).toEqual(["l-keep"]);
@@ -128,13 +128,13 @@ describe("hydrateLocalDb", () => {
     await db.habits.add(sampleHabit({ id: "h2" }));
     habitsResponse = { data: [], error: null };
 
-    await hydrateLocalDb();
+    await pullFromServer();
 
     const habits = await db.habits.toArray();
     expect(habits).toHaveLength(0);
   });
 
-  it("sync_queue에 미flush INSERT가 있는 habit은 삭제하지 않는다", async () => {
+  it("sync_queue에 미pushToServer INSERT가 있는 habit은 삭제하지 않는다", async () => {
     // 오프라인에서 만든 신규 habit — 서버는 아직 모름
     await db.habits.add(
       sampleHabit({ id: "h-offline", title: "오프라인 신규" })
@@ -148,13 +148,13 @@ describe("hydrateLocalDb", () => {
     });
     habitsResponse = { data: [], error: null };
 
-    await hydrateLocalDb();
+    await pullFromServer();
 
     const habits = await db.habits.toArray();
     expect(habits.map((h) => h.id)).toEqual(["h-offline"]);
   });
 
-  it("sync_queue에 미flush INSERT가 있는 habit_log은 삭제하지 않는다", async () => {
+  it("sync_queue에 미pushToServer INSERT가 있는 habit_log은 삭제하지 않는다", async () => {
     await db.habit_logs.add(sampleLog({ id: "l-offline" }));
     await db.sync_queue.add({
       table: "habit_logs",
@@ -165,7 +165,7 @@ describe("hydrateLocalDb", () => {
     });
     logsResponse = { data: [], error: null };
 
-    await hydrateLocalDb();
+    await pullFromServer();
 
     const logs = await db.habit_logs.toArray();
     expect(logs.map((l) => l.id)).toEqual(["l-offline"]);
@@ -175,13 +175,13 @@ describe("hydrateLocalDb", () => {
     await db.habits.add(sampleHabit({ id: "h-local" }));
     habitsResponse = { data: null, error: { message: "network down" } };
 
-    await hydrateLocalDb();
+    await pullFromServer();
 
     const habits = await db.habits.toArray();
     expect(habits.map((h) => h.id)).toEqual(["h-local"]);
   });
 
-  it("sync_queue에 미flush DELETE가 있는 habit은 부활시키지 않는다", async () => {
+  it("sync_queue에 미pushToServer DELETE가 있는 habit은 부활시키지 않는다", async () => {
     // 사용자가 삭제 → 로컬에서 이미 사라짐 + sync_queue엔 DELETE 대기 중
     // 서버는 아직 DELETE를 못 받았으므로 응답에 그대로 존재
     await db.sync_queue.add({
@@ -196,13 +196,13 @@ describe("hydrateLocalDb", () => {
       error: null,
     };
 
-    await hydrateLocalDb();
+    await pullFromServer();
 
     const habits = await db.habits.toArray();
     expect(habits.map((h) => h.id)).toEqual([]);
   });
 
-  it("sync_queue에 미flush DELETE가 있는 habit_log은 부활시키지 않는다", async () => {
+  it("sync_queue에 미pushToServer DELETE가 있는 habit_log은 부활시키지 않는다", async () => {
     await db.sync_queue.add({
       table: "habit_logs",
       operation: "DELETE",
@@ -215,13 +215,13 @@ describe("hydrateLocalDb", () => {
       error: null,
     };
 
-    await hydrateLocalDb();
+    await pullFromServer();
 
     const logs = await db.habit_logs.toArray();
     expect(logs.map((l) => l.id)).toEqual([]);
   });
 
-  it("sync_queue에 미flush UPDATE가 있는 habit은 서버 옛값으로 덮어쓰지 않는다", async () => {
+  it("sync_queue에 미pushToServer UPDATE가 있는 habit은 서버 옛값으로 덮어쓰지 않는다", async () => {
     // 로컬엔 이미 새 제목으로 업데이트됨 + sync_queue엔 UPDATE 대기 중
     // 서버는 아직 옛 제목을 들고 있음
     await db.habits.add(sampleHabit({ id: "h-edited", title: "새 제목" }));
@@ -237,7 +237,7 @@ describe("hydrateLocalDb", () => {
       error: null,
     };
 
-    await hydrateLocalDb();
+    await pullFromServer();
 
     const habits = await db.habits.toArray();
     expect(habits[0]?.title).toBe("새 제목");
