@@ -28,6 +28,7 @@ const mockHabits: Habit[] = [
     order: 1,
     created_at: "2026-04-01",
     updated_at: "2026-04-01",
+    deleted_at: null,
   },
   {
     id: "h2",
@@ -38,13 +39,32 @@ const mockHabits: Habit[] = [
     order: 2,
     created_at: "2026-04-01",
     updated_at: "2026-04-01",
+    deleted_at: null,
   },
 ];
 
 const mockLogs: HabitLog[] = [
-  { id: "l1", habit_id: "h1", completed_at: "2026-04-07" },
-  { id: "l2", habit_id: "h2", completed_at: "2026-04-07" },
-  { id: "l3", habit_id: "h1", completed_at: "2026-04-06" },
+  {
+    id: "l1",
+    habit_id: "h1",
+    completed_at: "2026-04-07",
+    updated_at: "2026-04-01T00:00:00.000Z",
+    deleted_at: null,
+  },
+  {
+    id: "l2",
+    habit_id: "h2",
+    completed_at: "2026-04-07",
+    updated_at: "2026-04-01T00:00:00.000Z",
+    deleted_at: null,
+  },
+  {
+    id: "l3",
+    habit_id: "h1",
+    completed_at: "2026-04-06",
+    updated_at: "2026-04-01T00:00:00.000Z",
+    deleted_at: null,
+  },
 ];
 
 describe("useWeeklyStats", () => {

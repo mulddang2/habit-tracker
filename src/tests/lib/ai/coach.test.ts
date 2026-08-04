@@ -32,11 +32,18 @@ function makeHabit(id: string, title = "테스트"): Habit {
     order: 1,
     created_at: "2026-04-01",
     updated_at: "2026-04-01",
+    deleted_at: null,
   };
 }
 
 function makeLog(habit_id: string, completed_at: string): HabitLog {
-  return { id: `${habit_id}-${completed_at}`, habit_id, completed_at };
+  return {
+    id: `${habit_id}-${completed_at}`,
+    habit_id,
+    completed_at,
+    updated_at: completed_at,
+    deleted_at: null,
+  };
 }
 
 describe("buildAchievementMatrix", () => {

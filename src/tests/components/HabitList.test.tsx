@@ -35,6 +35,7 @@ const mockHabits: Habit[] = [
     order: 1,
     created_at: "2026-04-01",
     updated_at: "2026-04-01",
+    deleted_at: null,
   },
   {
     id: "2",
@@ -45,11 +46,18 @@ const mockHabits: Habit[] = [
     order: 2,
     created_at: "2026-04-01",
     updated_at: "2026-04-01",
+    deleted_at: null,
   },
 ];
 
 const mockLogs: HabitLog[] = [
-  { id: "l1", habit_id: "1", completed_at: "2026-04-08" },
+  {
+    id: "l1",
+    habit_id: "1",
+    completed_at: "2026-04-08",
+    updated_at: "2026-04-01T00:00:00.000Z",
+    deleted_at: null,
+  },
 ];
 
 function renderHabitList() {

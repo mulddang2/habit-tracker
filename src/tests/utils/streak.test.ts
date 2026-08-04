@@ -73,15 +73,32 @@ describe("calculateMonthlyRates", () => {
   });
 
   it("2개 습관 중 1개 완료 시 달성률 0.5", () => {
-    const logs = [{ habit_id: "h1", completed_at: "2026-04-07" }];
+    const logs = [
+      {
+        habit_id: "h1",
+        completed_at: "2026-04-07",
+        updated_at: "2026-04-01T00:00:00.000Z",
+        deleted_at: null,
+      },
+    ];
     const result = calculateMonthlyRates(logs, 2);
     expect(result["2026-04-07"]).toBe(0.5);
   });
 
   it("같은 날 모든 습관 완료 시 달성률 1", () => {
     const logs = [
-      { habit_id: "h1", completed_at: "2026-04-07" },
-      { habit_id: "h2", completed_at: "2026-04-07" },
+      {
+        habit_id: "h1",
+        completed_at: "2026-04-07",
+        updated_at: "2026-04-01T00:00:00.000Z",
+        deleted_at: null,
+      },
+      {
+        habit_id: "h2",
+        completed_at: "2026-04-07",
+        updated_at: "2026-04-01T00:00:00.000Z",
+        deleted_at: null,
+      },
     ];
     const result = calculateMonthlyRates(logs, 2);
     expect(result["2026-04-07"]).toBe(1);
@@ -89,9 +106,24 @@ describe("calculateMonthlyRates", () => {
 
   it("여러 날짜에 대해 각각 달성률을 계산한다", () => {
     const logs = [
-      { habit_id: "h1", completed_at: "2026-04-01" },
-      { habit_id: "h2", completed_at: "2026-04-01" },
-      { habit_id: "h1", completed_at: "2026-04-02" },
+      {
+        habit_id: "h1",
+        completed_at: "2026-04-01",
+        updated_at: "2026-04-01T00:00:00.000Z",
+        deleted_at: null,
+      },
+      {
+        habit_id: "h2",
+        completed_at: "2026-04-01",
+        updated_at: "2026-04-01T00:00:00.000Z",
+        deleted_at: null,
+      },
+      {
+        habit_id: "h1",
+        completed_at: "2026-04-02",
+        updated_at: "2026-04-01T00:00:00.000Z",
+        deleted_at: null,
+      },
     ];
     const result = calculateMonthlyRates(logs, 2);
     expect(result["2026-04-01"]).toBe(1);
@@ -100,8 +132,18 @@ describe("calculateMonthlyRates", () => {
 
   it("같은 습관 중복 로그는 한 번만 카운트한다", () => {
     const logs = [
-      { habit_id: "h1", completed_at: "2026-04-07" },
-      { habit_id: "h1", completed_at: "2026-04-07" },
+      {
+        habit_id: "h1",
+        completed_at: "2026-04-07",
+        updated_at: "2026-04-01T00:00:00.000Z",
+        deleted_at: null,
+      },
+      {
+        habit_id: "h1",
+        completed_at: "2026-04-07",
+        updated_at: "2026-04-01T00:00:00.000Z",
+        deleted_at: null,
+      },
     ];
     const result = calculateMonthlyRates(logs, 2);
     expect(result["2026-04-07"]).toBe(0.5);

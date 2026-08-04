@@ -13,6 +13,7 @@ const makeHabit = (overrides: Partial<Habit> = {}): Habit => ({
   order: 1,
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
+  deleted_at: null,
   ...overrides,
 });
 
@@ -68,6 +69,7 @@ describe("habitRepository", () => {
       const habit = makeHabit({
         title: "원래 제목",
         updated_at: "2026-01-01T00:00:00.000Z",
+        deleted_at: null,
       });
       await db.habits.add(habit);
 
@@ -85,27 +87,53 @@ describe("habitRepository", () => {
   });
 
   describe("remove", () => {
-    it("습관과 관련 로그를 삭제하고 sync queue에 DELETE를 추가한다", async () => {
+    it("습관과 관련 로그에 삭제 표시를 남기고 sync queue에 UPDATE를 추가한다", async () => {
       const habit = makeHabit();
       await db.habits.add(habit);
       await db.habit_logs.bulkAdd([
-        { id: "log-1", habit_id: habit.id, completed_at: "2026-04-16" },
-        { id: "log-2", habit_id: habit.id, completed_at: "2026-04-17" },
-        { id: "log-3", habit_id: "other-habit", completed_at: "2026-04-16" },
+        {
+          id: "log-1",
+          habit_id: habit.id,
+          completed_at: "2026-04-16",
+          updated_at: "2026-04-01T00:00:00.000Z",
+          deleted_at: null,
+        },
+        {
+          id: "log-2",
+          habit_id: habit.id,
+          completed_at: "2026-04-17",
+          updated_at: "2026-04-01T00:00:00.000Z",
+          deleted_at: null,
+        },
+        {
+          id: "log-3",
+          habit_id: "other-habit",
+          completed_at: "2026-04-16",
+          updated_at: "2026-04-01T00:00:00.000Z",
+          deleted_at: null,
+        },
       ]);
 
       await habitRepository.remove(habit.id);
 
-      const habits = await db.habits.toArray();
-      expect(habits).toHaveLength(0);
+      // 행은 남지만 화면에서는 사라진다
+      expect(await habitRepository.fetchAll()).toHaveLength(0);
+      const stored = await db.habits.get(habit.id);
+      expect(stored?.deleted_at).toEqual(expect.any(String));
 
+      // 자식 로그도 함께 표시된다. 다른 습관의 로그는 건드리지 않는다.
       const logs = await db.habit_logs.toArray();
-      expect(logs).toHaveLength(1);
-      expect(logs[0].habit_id).toBe("other-habit");
+      expect(
+        logs.filter((l) => l.habit_id === habit.id).every((l) => l.deleted_at)
+      ).toBe(true);
+      expect(
+        logs.find((l) => l.habit_id === "other-habit")?.deleted_at
+      ).toBeNull();
 
+      // 서버 쪽 자식 로그는 트리거가 처리하므로 큐에는 습관 하나만 실린다
       const queue = await db.sync_queue.toArray();
       expect(queue).toHaveLength(1);
-      expect(queue[0].operation).toBe("DELETE");
+      expect(queue[0].operation).toBe("UPDATE");
     });
   });
 

@@ -12,6 +12,7 @@ const makeHabit = (overrides: Partial<Habit> = {}): Habit => ({
   order: 1,
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
+  deleted_at: null,
   ...overrides,
 });
 
@@ -19,6 +20,8 @@ const makeLog = (overrides: Partial<HabitLog> = {}): HabitLog => ({
   id: crypto.randomUUID(),
   habit_id: "habit-1",
   completed_at: "2026-04-16",
+  updated_at: "2026-04-01T00:00:00.000Z",
+  deleted_at: null,
   ...overrides,
 });
 
@@ -105,8 +108,18 @@ describe("Dexie local DB", () => {
     it("복합 인덱스로 특정 습관의 특정 날짜 로그를 찾을 수 있다", async () => {
       const habitId = "habit-test";
       await db.habit_logs.bulkAdd([
-        makeLog({ habit_id: habitId, completed_at: "2026-04-16" }),
-        makeLog({ habit_id: "other", completed_at: "2026-04-16" }),
+        makeLog({
+          habit_id: habitId,
+          completed_at: "2026-04-16",
+          updated_at: "2026-04-01T00:00:00.000Z",
+          deleted_at: null,
+        }),
+        makeLog({
+          habit_id: "other",
+          completed_at: "2026-04-16",
+          updated_at: "2026-04-01T00:00:00.000Z",
+          deleted_at: null,
+        }),
       ]);
 
       const result = await db.habit_logs

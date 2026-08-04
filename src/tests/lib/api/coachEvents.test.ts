@@ -81,6 +81,8 @@ describe("computeAcceptImpact", () => {
     id: crypto.randomUUID(),
     habit_id: habitId,
     completed_at: isoDate,
+    updated_at: "2026-04-01T00:00:00.000Z",
+    deleted_at: null,
   });
 
   it("수락 이벤트가 없으면 null", () => {

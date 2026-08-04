@@ -43,6 +43,7 @@ export function useCreateHabit() {
         order: (previous?.length ?? 0) + 1,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        deleted_at: null,
       };
 
       queryClient.setQueryData<Habit[]>(habitKeys.list(), (old) => [

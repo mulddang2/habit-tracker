@@ -45,6 +45,7 @@ export async function createHabit(
     order: maxOrder + 1,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
+    deleted_at: null,
   };
 
   return habitRepository.create(newHabit);

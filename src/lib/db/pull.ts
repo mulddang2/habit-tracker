@@ -1,5 +1,7 @@
+import type { Table } from "dexie";
 import { db } from "./local";
 import { withSyncLock } from "./syncLock";
+import { serverWins, type Versioned } from "./tombstone";
 import { createClient } from "@/lib/supabase/client";
 
 type Supabase = ReturnType<typeof createClient>;
@@ -42,10 +44,8 @@ async function applyServerSnapshot(supabase: Supabase): Promise<void> {
     .from("habit_logs")
     .select("*");
 
-  // 잠금셋 조회와 미러 반영은 반드시 한 트랜잭션 안에서 이뤄져야 한다.
-  // 분리하면 그 사이에 커밋된 로컬 변경(특히 DELETE)이 잠금셋에 안 잡혀
-  // 서버 스냅샷으로 되살아난다. 리포지토리 쪽도 "로컬 변경 + enqueue"를
-  // 한 트랜잭션으로 커밋하므로, 여기서는 변경 전/후만 관측한다.
+  // 잠금셋 조회와 미러 반영은 한 트랜잭션 안에서 이뤄진다. 리포지토리 쪽도
+  // "로컬 변경 + enqueue"를 한 트랜잭션으로 커밋하므로 변경 전/후만 관측한다.
   await db.transaction(
     "rw",
     db.habits,
@@ -53,8 +53,8 @@ async function applyServerSnapshot(supabase: Supabase): Promise<void> {
     db.sync_queue,
     async () => {
       // 아직 서버로 못 보낸 작업이 있는 row id는 어느 방향으로도 건드리지 않는다.
-      // INSERT(서버에 아직 없음 → 삭제 금지), UPDATE(로컬이 더 최신 → 덮어쓰기 금지),
-      // DELETE(서버는 아직 보유 → 부활 금지) 모두 보호.
+      // 시각 비교가 대부분을 막아주지만, 기기 시계가 어긋난 경우까지 대비해
+      // 미전송 항목은 아예 손대지 않는 쪽이 안전하다.
       const pending = await db.sync_queue.toArray();
       const lockedHabitIds = new Set(
         pending
@@ -67,33 +67,36 @@ async function applyServerSnapshot(supabase: Supabase): Promise<void> {
           .map((q) => q.payload.id as string)
       );
 
-      // habits — 서버를 진실로 보고 mirror, 단 잠금 항목은 제외
-      if (!habitsError && habits) {
-        const serverIds = new Set(habits.map((h) => h.id));
-        const localIds = (await db.habits
-          .toCollection()
-          .primaryKeys()) as string[];
-        const toDelete = localIds.filter(
-          (id) => !serverIds.has(id) && !lockedHabitIds.has(id)
-        );
-        if (toDelete.length > 0) await db.habits.bulkDelete(toDelete);
-        const toPut = habits.filter((h) => !lockedHabitIds.has(h.id));
-        if (toPut.length > 0) await db.habits.bulkPut(toPut);
-      }
-
-      // habit_logs — 동일 패턴
-      if (!logsError && logs) {
-        const serverIds = new Set(logs.map((l) => l.id));
-        const localIds = (await db.habit_logs
-          .toCollection()
-          .primaryKeys()) as string[];
-        const toDelete = localIds.filter(
-          (id) => !serverIds.has(id) && !lockedLogIds.has(id)
-        );
-        if (toDelete.length > 0) await db.habit_logs.bulkDelete(toDelete);
-        const toPut = logs.filter((l) => !lockedLogIds.has(l.id));
-        if (toPut.length > 0) await db.habit_logs.bulkPut(toPut);
-      }
+      if (!habitsError && habits)
+        await mirror(db.habits, habits, lockedHabitIds);
+      if (!logsError && logs) await mirror(db.habit_logs, logs, lockedLogIds);
     }
   );
+}
+
+/**
+ * 서버 목록을 로컬에 반영한다. 반드시 트랜잭션 안에서 호출한다.
+ *
+ * 서버 행을 무조건 덮어쓰지 않고 updated_at을 비교해 **더 최신일 때만** 쓴다.
+ * 이게 낡은 응답으로부터 로컬을 지키는 핵심이다 — 방금 한 삭제(= deleted_at이
+ * 채워진 더 최신 행)를, 그 삭제를 아직 모르는 응답이 되돌리지 못한다.
+ */
+async function mirror<T extends Versioned & { id: string }>(
+  table: Table<T, string>,
+  serverRows: T[],
+  lockedIds: Set<string>
+): Promise<void> {
+  // 서버가 아예 모르는 로컬 행은 아직 못 보낸 생성뿐이다. 삭제는 이제
+  // 목록에서 사라지는 대신 표시된 행으로 오므로 여기 걸리지 않는다.
+  const serverIds = new Set(serverRows.map((r) => r.id));
+  const localIds = (await table.toCollection().primaryKeys()) as string[];
+  const toDelete = localIds.filter(
+    (id) => !serverIds.has(id) && !lockedIds.has(id)
+  );
+  if (toDelete.length > 0) await table.bulkDelete(toDelete);
+
+  const candidates = serverRows.filter((r) => !lockedIds.has(r.id));
+  const local = await table.bulkGet(candidates.map((r) => r.id));
+  const toPut = candidates.filter((r, i) => serverWins(r, local[i]));
+  if (toPut.length > 0) await table.bulkPut(toPut);
 }

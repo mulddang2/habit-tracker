@@ -53,6 +53,8 @@ export function useToggleHabitLog(date: Date) {
             id: `temp-${habitId}`,
             habit_id: habitId,
             completed_at: dateStr,
+            updated_at: new Date().toISOString(),
+            deleted_at: null,
           },
         ];
       });

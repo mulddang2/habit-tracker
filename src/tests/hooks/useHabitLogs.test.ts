@@ -26,7 +26,13 @@ import { toast } from "sonner";
 const testDate = new Date("2026-04-07");
 
 const mockLogs: HabitLog[] = [
-  { id: "log-1", habit_id: "h1", completed_at: "2026-04-07" },
+  {
+    id: "log-1",
+    habit_id: "h1",
+    completed_at: "2026-04-07",
+    updated_at: "2026-04-01T00:00:00.000Z",
+    deleted_at: null,
+  },
 ];
 
 describe("useTodayLogs", () => {

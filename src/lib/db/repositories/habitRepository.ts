@@ -1,5 +1,6 @@
 import { db } from "../local";
 import { enqueueWithin, triggerPush } from "../sync";
+import { isAlive } from "../tombstone";
 import type { Habit } from "@/types/habit";
 
 // 로컬 변경과 큐 삽입을 한 트랜잭션으로 커밋한다. pullFromServer가 둘 사이의
@@ -9,7 +10,7 @@ function writeAtomically(fn: () => Promise<void>): Promise<void> {
 }
 
 export async function fetchAll(): Promise<Habit[]> {
-  return db.habits.orderBy("order").toArray();
+  return db.habits.orderBy("order").filter(isAlive).toArray();
 }
 
 export async function create(habit: Habit): Promise<Habit> {
@@ -43,21 +44,31 @@ export async function update(
   return updated!;
 }
 
+/**
+ * 삭제 표시만 남긴다. 행을 지우지 않는 이유는 tombstone.ts 참고 —
+ * 지워버리면 낡은 서버 응답과 최신 여부를 비교할 대상이 없어진다.
+ */
 export async function remove(id: string): Promise<void> {
+  const deleted_at = new Date().toISOString();
   await writeAtomically(async () => {
-    await db.habits.delete(id);
-    // 관련 로그도 로컬에서 삭제 (서버는 FK cascade가 처리)
-    await db.habit_logs.where("habit_id").equals(id).delete();
+    await db.habits.update(id, { deleted_at, updated_at: deleted_at });
+    // 자식 로그도 로컬에서 즉시 표시해 화면이 바로 반응하게 한다.
+    // 서버 쪽은 habits_cascade_soft_delete 트리거가 같은 일을 하므로
+    // 로그 하나하나에 대해 요청을 보내지 않는다.
+    await db.habit_logs
+      .where("habit_id")
+      .equals(id)
+      .modify({ deleted_at, updated_at: deleted_at });
     await enqueueWithin({
       table: "habits",
-      operation: "DELETE",
-      payload: { id },
+      operation: "UPDATE",
+      payload: { id, deleted_at, updated_at: deleted_at },
     });
   });
   triggerPush();
 }
 
 export async function getMaxOrder(): Promise<number> {
-  const last = await db.habits.orderBy("order").last();
+  const last = await db.habits.orderBy("order").filter(isAlive).last();
   return last?.order ?? 0;
 }

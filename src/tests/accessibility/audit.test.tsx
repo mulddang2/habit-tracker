@@ -14,6 +14,7 @@ const mockHabit: Habit = {
   order: 1,
   created_at: "2026-04-01",
   updated_at: "2026-04-01",
+  deleted_at: null,
 };
 
 describe("접근성 감사 - 미검사 컴포넌트", () => {

@@ -41,6 +41,7 @@ const sampleHabit = (overrides: Partial<Habit> = {}): Habit => ({
   order: 1,
   created_at: "2026-04-01",
   updated_at: "2026-04-01",
+  deleted_at: null,
   ...overrides,
 });
 
@@ -48,6 +49,8 @@ const sampleLog = (overrides: Partial<HabitLog> = {}): HabitLog => ({
   id: "l1",
   habit_id: "h1",
   completed_at: "2026-04-16",
+  updated_at: "2026-04-01T00:00:00.000Z",
+  deleted_at: null,
   ...overrides,
 });
 
@@ -87,15 +90,36 @@ describe("pullFromServer", () => {
     expect(habits).toHaveLength(0);
   });
 
-  it("기존 로컬 데이터를 서버 데이터로 덮어쓴다", async () => {
-    await db.habits.add(sampleHabit({ title: "오래된 제목" }));
-    habitsResponse = { data: [sampleHabit({ title: "운동" })], error: null };
+  it("서버가 더 최신이면 기존 로컬 데이터를 덮어쓴다", async () => {
+    await db.habits.add(
+      sampleHabit({ title: "오래된 제목", updated_at: "2026-04-01" })
+    );
+    habitsResponse = {
+      data: [sampleHabit({ title: "운동", updated_at: "2026-04-02" })],
+      error: null,
+    };
 
     await pullFromServer();
 
     const habits = await db.habits.toArray();
     expect(habits).toHaveLength(1);
     expect(habits[0].title).toBe("운동");
+  });
+
+  it("로컬이 더 최신이면 서버 데이터로 덮어쓰지 않는다", async () => {
+    // 아직 못 보낸 로컬 수정. 큐가 비어 있어도 시각 비교가 지켜준다.
+    await db.habits.add(
+      sampleHabit({ title: "새로 고친 제목", updated_at: "2026-04-03" })
+    );
+    habitsResponse = {
+      data: [sampleHabit({ title: "서버 옛 제목", updated_at: "2026-04-02" })],
+      error: null,
+    };
+
+    await pullFromServer();
+
+    const habits = await db.habits.toArray();
+    expect(habits[0].title).toBe("새로 고친 제목");
   });
 
   it("서버에 없는 로컬 habit을 삭제한다 (mirror)", async () => {

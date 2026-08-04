@@ -13,6 +13,7 @@ const mockHabit: Habit = {
   order: 1,
   created_at: "2026-04-01",
   updated_at: "2026-04-01",
+  deleted_at: null,
 };
 
 const defaultProps = {
